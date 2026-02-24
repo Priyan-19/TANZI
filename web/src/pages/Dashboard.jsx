@@ -15,7 +15,7 @@ import { Link } from "react-router-dom";
 // ─── Stat Card ──────────────────────────────────────────────────────────────
 function StatCard({ label, value, icon: Icon, color, sub, trend }) {
   return (
-    <div className="relative overflow-hidden backdrop-blur-md bg-white/70 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/40 rounded-[1.5rem] p-4 md:p-6 transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98] hover:shadow-xl hover:shadow-violet-500/10 group cursor-default">
+    <div className="relative overflow-hidden backdrop-blur-md bg-white/85 dark:bg-slate-900/50 border border-slate-300/60 dark:border-slate-800/40 rounded-[1.5rem] p-4 md:p-6 transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98] hover:shadow-xl hover:shadow-violet-500/10 group cursor-default shadow-sm shadow-slate-300/30">
       <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-violet-500/10 to-transparent rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500 pointer-events-none" />
 
       <div className="flex items-start justify-between relative z-10 mb-3 md:mb-4">
@@ -24,7 +24,7 @@ function StatCard({ label, value, icon: Icon, color, sub, trend }) {
           <Icon size={22} className="text-white hidden md:block" />
         </div>
         {sub && (
-          <span className="text-[9px] md:text-[10px] font-black uppercase tracking-tighter text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700/50">
+          <span className="text-[9px] md:text-[10px] font-black uppercase tracking-tighter text-slate-500 bg-slate-100 dark:bg-slate-800/80 px-2 py-1 rounded-lg border border-slate-300/60 dark:border-slate-700/50">
             {sub}
           </span>
         )}
@@ -62,7 +62,7 @@ function DashboardTaskRow({ task }) {
         className={`w-6 h-6 rounded-xl border-2 flex-shrink-0 transition-all flex items-center justify-center tap-target
           ${isCompleted
             ? "bg-emerald-500 border-emerald-500 shadow-lg shadow-emerald-500/30 scale-110"
-            : "border-slate-200 dark:border-slate-700 hover:border-violet-500 active:scale-90"
+            : "border-slate-300 dark:border-slate-700 hover:border-violet-500 active:scale-90"
           }`}
       >
         {isCompleted && <CheckCircle2 size={12} className="text-white fill-white" />}
@@ -131,9 +131,9 @@ export default function Dashboard() {
             <div className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
             <span className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest">{format(new Date(), "MMMM do")}</span>
           </div>
-          <h1 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-slate-100 tracking-tighter italic leading-none mb-2">
+          <h1 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, fontStyle: 'italic', letterSpacing: '-0.03em', lineHeight: 1.1, paddingBottom: '4px', overflow: 'visible' }} className="text-3xl md:text-5xl text-slate-900 dark:text-slate-100 mb-2">
             {greeting()},{" "}
-            <span className="bg-gradient-to-r from-violet-600 to-cyan-500 bg-clip-text text-transparent">{firstName}</span>.
+            <span style={{ background: 'linear-gradient(to right, #7c3aed, #06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', display: 'inline-block', paddingRight: '4px' }}>{firstName}</span>.
           </h1>
           <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm font-semibold leading-relaxed max-w-lg">
             {todayTasks.length === 0
@@ -152,7 +152,7 @@ export default function Dashboard() {
             className={`flex-1 sm:flex-none px-4 md:px-5 py-2.5 rounded-2xl border-2 text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95
               ${showPomodoro
                 ? "border-violet-600 bg-violet-600 text-white shadow-violet-500/30 scale-[1.02]"
-                : "border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 shadow-slate-200/50 dark:shadow-black/20"
+                : "border-slate-300 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 shadow-slate-300/50 dark:shadow-black/20"
               }`}
           >
             <Clock size={15} strokeWidth={2.5} />
@@ -186,7 +186,7 @@ export default function Dashboard() {
 
       {/* ─── Progress Bar ─── */}
       {todayTasks.length > 0 && (
-        <div className="relative overflow-hidden backdrop-blur-xl bg-white/50 dark:bg-slate-900/40 border border-slate-200/50 dark:border-slate-800/50 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-8 group">
+        <div className="relative overflow-hidden backdrop-blur-xl bg-white/85 dark:bg-slate-900/40 border border-slate-300/80 dark:border-slate-800/50 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-8 group shadow-lg shadow-slate-300/20">
           <div className="absolute top-0 right-0 w-48 h-48 bg-violet-600/5 blur-[80px] pointer-events-none" />
 
           <div className="flex items-start md:items-center justify-between gap-3 mb-5">

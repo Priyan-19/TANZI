@@ -35,9 +35,17 @@ export default function Layout() {
     return saved === null ? true : saved === "true";
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showNotifBanner, setShowNotifBanner] = useState(false);
   const navigate = useNavigate();
   const tasksRef = useRef(tasks);
   tasksRef.current = tasks;
+
+  // Sync notif status on mount
+  useEffect(() => {
+    if (typeof Notification !== "undefined") {
+      setNotifStatus(Notification.permission);
+    }
+  }, []);
 
   // Lock body scroll when mobile menu is open
   useEffect(() => {
@@ -64,7 +72,16 @@ export default function Layout() {
   const toggleNotifs = async () => {
     if (!notifsEnabled) {
       // ── Trying to ENABLE ─────────────────────────────────────────
-      if (Notification.permission !== "granted") {
+      const currentPerm = typeof Notification !== "undefined" ? Notification.permission : "default";
+
+      if (currentPerm === "denied") {
+        // Permission is hard-denied — show banner with instructions, don't call requestPermission
+        setShowNotifBanner(true);
+        setTimeout(() => setShowNotifBanner(false), 7000);
+        return;
+      }
+
+      if (currentPerm !== "granted") {
         // Need to ask for permission first
         await requestNotificationPermission(user?.uid).catch(() => { });
         const perm = typeof Notification !== "undefined" ? Notification.permission : "default";
@@ -73,8 +90,10 @@ export default function Layout() {
           setNotifsEnabled(true);
           localStorage.setItem("notifs_enabled", "true");
           startTaskReminders(() => tasksRef.current, 30 * 60 * 1000);
+        } else if (perm === "denied") {
+          setShowNotifBanner(true);
+          setTimeout(() => setShowNotifBanner(false), 7000);
         }
-        // If denied, we just don't enable — user can see it stays off
       } else {
         // Permission already granted — enable immediately, no token needed
         setNotifsEnabled(true);
@@ -108,23 +127,24 @@ export default function Layout() {
       {/* ─── Desktop Sidebar ─────────────────────────────────────── */}
       <aside
         className={`
-          hidden md:flex flex-col transition-all duration-300 m-4 rounded-3xl overflow-hidden
-          border border-slate-200/60 dark:border-slate-800/40
-          bg-white/70 dark:bg-slate-900/40 backdrop-blur-xl
-          shadow-2xl shadow-slate-200/50 dark:shadow-black/40
+          hidden md:flex flex-col transition-all duration-300 m-4 rounded-3xl
+          border border-slate-300/80 dark:border-slate-800/40
+          bg-white/80 dark:bg-slate-900/40 backdrop-blur-xl
+          shadow-2xl shadow-slate-300/40 dark:shadow-black/40
           ${collapsed ? "w-20" : "w-64"}
         `}
+        style={{ overflow: 'visible', clipPath: 'none' }}
       >
         {/* Logo */}
         <div className="flex items-center px-4 py-6">
-          <Link to="/" className="flex items-center gap-3 flex-1 min-w-0 px-2">
+          <Link to="/" className="flex items-center gap-3 flex-shrink-0 px-2">
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-600 to-cyan-500 p-[2px] shadow-lg shadow-violet-500/30 flex-shrink-0">
               <div className="w-full h-full bg-slate-900 rounded-[14px] flex items-center justify-center">
                 <Zap size={18} className="text-white fill-white" />
               </div>
             </div>
             {!collapsed && (
-              <span className="font-black text-xl tracking-tighter bg-gradient-to-r from-violet-600 to-cyan-500 bg-clip-text text-transparent italic">
+              <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, fontSize: '1.25rem', letterSpacing: '-0.03em', fontStyle: 'italic', background: 'linear-gradient(to right, #7c3aed, #06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', display: 'inline-block', paddingRight: '4px' }}>
                 TANZI
               </span>
             )}
@@ -133,7 +153,7 @@ export default function Layout() {
 
         {/* User Card */}
         {!collapsed && (
-          <div className="mx-4 mb-4 p-4 rounded-2xl bg-slate-100/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30">
+          <div className="mx-4 mb-4 p-4 rounded-2xl bg-slate-100/50 dark:bg-slate-800/30 border border-slate-300/60 dark:border-slate-700/30">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-500 to-cyan-400 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-violet-500/20 flex-shrink-0">
                 {(user?.displayName || user?.email || "U")[0].toUpperCase()}
@@ -177,13 +197,30 @@ export default function Layout() {
 
         {/* Bottom Actions */}
         <div className="p-3 space-y-1">
+          {/* Notification Banner - shown when blocked */}
+          {showNotifBanner && (
+            <div className="mb-2 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 animate-slide-up">
+              <div className="flex items-start gap-2">
+                <Bell size={14} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-amber-600 dark:text-amber-400 leading-tight">Notifications blocked</p>
+                  <p className="text-[10px] text-amber-700/70 dark:text-amber-500/70 mt-0.5 leading-relaxed">
+                    Click the 🔒 lock icon in your browser's address bar, then set Notifications to "Allow".
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Notification Toggle */}
           <button
             onClick={toggleNotifs}
             className={`flex items-center gap-3 px-4 py-3 w-full rounded-2xl transition-all duration-200 group
-              ${notifsEnabled
-                ? "text-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20"
-                : "text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 border border-transparent"}`}
+              ${notifStatus === "denied"
+                ? "text-amber-500 bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20"
+                : notifsEnabled
+                  ? "text-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20"
+                  : "text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 border border-transparent"}`}
           >
             <div className="relative flex-shrink-0">
               <Bell size={18} className={notifsEnabled ? "fill-emerald-500/20" : ""} />
@@ -193,11 +230,12 @@ export default function Layout() {
               <>
                 <div className="flex flex-col items-start min-w-0">
                   <span className="text-xs font-bold leading-tight">Notifications</span>
-                  <span className={`text-[10px] font-medium uppercase tracking-tighter ${notifsEnabled ? "text-emerald-500/70" : "text-slate-500"}`}>
-                    {notifsEnabled ? "Enabled" : "Disabled"}
+                  <span className={`text-[10px] font-medium uppercase tracking-tighter ${notifStatus === "denied" ? "text-amber-500/80" : notifsEnabled ? "text-emerald-500/70" : "text-slate-500"
+                    }`}>
+                    {notifStatus === "denied" ? "Blocked" : notifsEnabled ? "Enabled" : "Disabled"}
                   </span>
                 </div>
-                <div className={`ml-auto w-8 h-4 rounded-full relative transition-colors duration-300 ${notifsEnabled ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700"}`}>
+                <div className={`ml-auto w-8 h-4 rounded-full relative transition-colors duration-300 ${notifsEnabled ? "bg-emerald-500" : notifStatus === "denied" ? "bg-amber-400" : "bg-slate-300 dark:bg-slate-700"}`}>
                   <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-all duration-300 ${notifsEnabled ? "left-[18px]" : "left-0.5"}`} />
                 </div>
               </>
@@ -226,7 +264,7 @@ export default function Layout() {
         {/* Collapse Toggle */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="p-3 mx-4 mb-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 flex items-center justify-center transition-all bg-white/50 dark:bg-slate-800/20"
+          className="p-3 mx-4 mb-4 rounded-2xl border border-slate-300/60 dark:border-slate-800/50 text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 flex items-center justify-center transition-all bg-white/50 dark:bg-slate-800/20"
         >
           {collapsed
             ? <ChevronRight size={16} />
@@ -240,7 +278,7 @@ export default function Layout() {
 
         {/* Top Floating Header */}
         <header className="sticky top-0 z-40 p-3 md:p-4 pb-0">
-          <div className="flex items-center justify-between px-4 md:px-6 py-2.5 md:py-3 rounded-2xl bg-white/70 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/40 shadow-lg shadow-slate-200/30 dark:shadow-black/20">
+          <div className="flex items-center justify-between px-4 md:px-6 py-2.5 md:py-3 rounded-2xl bg-white/80 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-300/80 dark:border-slate-800/40 shadow-lg shadow-slate-300/30 dark:shadow-black/20">
             <div className="flex items-center gap-3">
               {/* Mobile menu button */}
               <button
@@ -258,7 +296,7 @@ export default function Layout() {
                     <Zap size={14} className="text-white fill-white" />
                   </div>
                 </div>
-                <span className="font-black text-base tracking-tighter bg-gradient-to-r from-violet-600 to-cyan-500 bg-clip-text text-transparent italic">TANZI</span>
+                <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, fontSize: '1rem', letterSpacing: '-0.03em', fontStyle: 'italic', background: 'linear-gradient(to right, #7c3aed, #06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', display: 'inline-block', paddingRight: '3px' }}>TANZI</span>
               </Link>
 
               {/* Desktop date */}
@@ -357,7 +395,7 @@ export default function Layout() {
           />
 
           {/* Panel */}
-          <div className="absolute top-3 left-3 bottom-3 w-[min(80vw,300px)] bg-white dark:bg-[#0f172a] rounded-[28px] flex flex-col animate-slide-right border border-slate-200/50 dark:border-slate-800/60 shadow-2xl shadow-black/40 overflow-hidden">
+          <div className="absolute top-3 left-3 bottom-3 w-[min(80vw,300px)] bg-white dark:bg-[#0f172a] rounded-[28px] flex flex-col animate-slide-right border border-slate-300/60 dark:border-slate-800/60 shadow-2xl shadow-black/40 overflow-hidden">
 
             {/* Panel Header */}
             <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
@@ -367,7 +405,7 @@ export default function Layout() {
                     <Zap size={15} className="text-white fill-white" />
                   </div>
                 </div>
-                <span className="font-black text-xl tracking-tighter bg-gradient-to-r from-violet-600 to-cyan-500 bg-clip-text text-transparent italic">TANZI</span>
+                <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, fontSize: '1.25rem', letterSpacing: '-0.03em', fontStyle: 'italic', background: 'linear-gradient(to right, #7c3aed, #06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', display: 'inline-block', paddingRight: '4px' }}>TANZI</span>
               </div>
               <button
                 onClick={() => setMobileMenuOpen(false)}

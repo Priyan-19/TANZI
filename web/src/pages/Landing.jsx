@@ -407,7 +407,7 @@ export default function Landing() {
                         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-violet-500/20">
                             <Zap size={17} className="text-white" />
                         </div>
-                        <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">
+                        <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: '1.25rem', letterSpacing: '-0.03em', background: 'linear-gradient(to right, #a78bfa, #67e8f9)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', display: 'inline-block', paddingRight: '3px' }}>
                             TANZI
                         </span>
                     </div>
@@ -466,10 +466,10 @@ export default function Landing() {
                         <ChevronRight size={12} />
                     </div>
 
-                    <h1 className="text-5xl sm:text-7xl font-extrabold tracking-tight mb-7 leading-[1.1]">
+                    <h1 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, fontStyle: 'italic', letterSpacing: '-0.05em', lineHeight: 1.1, paddingBottom: '0.2em', overflow: 'visible' }} className="text-5xl sm:text-7xl mb-7">
                         <span className="text-slate-50">Master your time with</span>
                         <br />
-                        <span className="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-cyan-400 bg-clip-text text-transparent">
+                        <span className="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-cyan-400 bg-clip-text text-transparent inline-block pb-1 pr-4">
                             Intelligent Analytics
                         </span>
                     </h1>
@@ -550,8 +550,8 @@ export default function Landing() {
                             <Zap size={11} />
                             EVERYTHING YOU NEED
                         </div>
-                        <h2 className="text-4xl sm:text-5xl font-extrabold text-slate-100 mb-4">
-                            Built for serious <span className="bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">achievers</span>
+                        <h2 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, fontStyle: 'italic', letterSpacing: '-0.04em', paddingBottom: '4px', overflow: 'visible' }} className="text-4xl sm:text-5xl text-slate-100 mb-4">
+                            Built for serious <span className="bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent inline-block pr-2">achievers</span>
                         </h2>
                         <p className="text-slate-400 max-w-2xl mx-auto text-lg">
                             A complete productivity toolkit designed from the ground up for people who want results.
@@ -671,7 +671,7 @@ export default function Landing() {
                             <Star size={11} className="fill-amber-400" />
                             LOVED BY USERS
                         </div>
-                        <h2 className="text-4xl font-extrabold text-slate-100">What people are saying</h2>
+                        <h2 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, fontStyle: 'italic', letterSpacing: '-0.04em', paddingBottom: '4px', overflow: 'visible' }} className="text-4xl text-slate-100">What people are saying</h2>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                         <TestimonialCard
@@ -696,9 +696,9 @@ export default function Landing() {
             {/* ─── Final CTA ─── */}
             <section className="relative z-10 py-24 px-4 sm:px-6">
                 <div className="max-w-3xl mx-auto text-center">
-                    <h2 className="text-5xl font-extrabold text-slate-100 mb-6 leading-tight">
+                    <h2 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, fontStyle: 'italic', letterSpacing: '-0.04em', lineHeight: 1.1, paddingBottom: '8px', overflow: 'visible' }} className="text-5xl text-slate-100 mb-6">
                         Ready to take <br />
-                        <span className="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-cyan-400 bg-clip-text text-transparent">
+                        <span className="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-cyan-400 bg-clip-text text-transparent inline-block pr-4">
                             control of your time?
                         </span>
                     </h2>
@@ -726,7 +726,7 @@ export default function Landing() {
                             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center">
                                 <Zap size={14} className="text-white" />
                             </div>
-                            <span className="font-extrabold text-lg text-slate-200 tracking-tight">TANZI</span>
+                            <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: '1.125rem', letterSpacing: '-0.03em', color: '#e2e8f0', display: 'inline-block', paddingRight: '2px' }}>TANZI</span>
                         </div>
                         <p className="text-slate-500 text-sm">
                             © 2026 TANZI. Crafted with ❤️ for productive minds.

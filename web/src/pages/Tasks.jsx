@@ -53,7 +53,7 @@ export default function Tasks() {
             <div className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Inventory</span>
           </div>
-          <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tighter italic">
+          <h1 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, fontStyle: 'italic', letterSpacing: '-0.04em', lineHeight: 1, paddingBottom: '4px', overflow: 'visible' }} className="text-3xl md:text-4xl text-slate-900 dark:text-slate-100">
             Objective <span className="text-violet-600">Archive</span>
           </h1>
           <p className="text-slate-500 dark:text-slate-400 text-[11px] font-bold uppercase tracking-widest mt-1">{tasks.length} entries registered</p>
@@ -75,7 +75,7 @@ export default function Tasks() {
           placeholder="Search tasks..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full bg-white/70 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/40 rounded-2xl py-3 pl-11 pr-10 text-sm font-medium text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-violet-500/50 transition-all shadow-lg shadow-slate-200/20 dark:shadow-black/10"
+          className="w-full bg-white/85 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-300/80 dark:border-slate-800/40 rounded-2xl py-3 pl-11 pr-10 text-sm font-medium text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-violet-500/50 transition-all shadow-lg shadow-slate-300/20 dark:shadow-black/10"
         />
         {search && (
           <button
@@ -90,7 +90,7 @@ export default function Tasks() {
       {/* ─── Filter Pills ─── */}
       <div className="flex flex-col sm:flex-row gap-3">
         {/* Date filter */}
-        <div className="flex gap-1 p-1.5 bg-white/70 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/40 rounded-2xl shadow-md dark:shadow-black/10 overflow-x-auto no-scrollbar">
+        <div className="flex gap-1 p-1.5 bg-white/85 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-300/80 dark:border-slate-800/40 rounded-2xl shadow-md dark:shadow-black/10 overflow-x-auto no-scrollbar">
           {FILTERS.map(({ key, label }) => (
             <button
               key={key}
@@ -98,7 +98,7 @@ export default function Tasks() {
               className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap
                 ${filter === key
                   ? "bg-violet-600 text-white shadow-lg shadow-violet-500/30"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                 }`}
             >
               {label}
@@ -107,7 +107,7 @@ export default function Tasks() {
         </div>
 
         {/* Status filter */}
-        <div className="flex gap-1 p-1.5 bg-white/70 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/40 rounded-2xl shadow-md dark:shadow-black/10">
+        <div className="flex gap-1 p-1.5 bg-white/85 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-300/80 dark:border-slate-800/40 rounded-2xl shadow-md dark:shadow-black/10">
           {[
             { key: "all", label: "All" },
             { key: "pending", label: "Pending" },
@@ -213,10 +213,10 @@ function TaskCard({ task, onComplete, onUncomplete, onEdit, onDelete }) {
 
   return (
     <div
-      className={`group flex items-start gap-3 md:gap-4 p-4 md:p-5 bg-white/70 dark:bg-slate-900/40 backdrop-blur-xl border rounded-[1.25rem] md:rounded-[1.5rem] transition-all duration-200 shadow-md shadow-slate-200/20 dark:shadow-black/10
+      className={`group flex items-start gap-3 md:gap-4 p-4 md:p-5 bg-white/85 dark:bg-slate-900/40 backdrop-blur-xl border rounded-[1.25rem] md:rounded-[1.5rem] transition-all duration-200 shadow-md shadow-slate-300/20 dark:shadow-black/10
         ${isCompleted
-          ? "border-slate-100 dark:border-slate-800/30 opacity-50 grayscale"
-          : "border-slate-200/60 dark:border-slate-800/40 hover:border-violet-500/30 hover:translate-x-0.5 active:scale-[0.99]"
+          ? "border-slate-200 dark:border-slate-800/30 opacity-50 grayscale"
+          : "border-slate-300/80 dark:border-slate-800/40 hover:border-violet-500/30 hover:translate-x-0.5 active:scale-[0.99]"
         }`}
     >
       {/* Checkbox */}

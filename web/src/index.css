@@ -100,7 +100,7 @@ body {
 
   /* Glassmorphism card */
   .glass-card {
-    @apply backdrop-blur-xl bg-white/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/40;
+    @apply backdrop-blur-xl bg-white/80 dark:bg-slate-900/40 border border-slate-300/80 dark:border-slate-800/40;
   }
 
   /* Touch-friendly min tap target */

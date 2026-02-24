@@ -53,7 +53,7 @@ export default function TaskModal({ task, onClose }) {
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       {/* Sheet-style on mobile, centered dialog on sm+ */}
-      <div className="w-full sm:max-w-md bg-white dark:bg-[#0f172a] border border-slate-200/60 dark:border-slate-700/60 rounded-t-[2rem] sm:rounded-[1.75rem] shadow-2xl shadow-black/30 overflow-hidden animate-slide-up sm:animate-scale-in">
+      <div className="w-full sm:max-w-md bg-white dark:bg-[#0f172a] border border-slate-300/80 dark:border-slate-700/60 rounded-t-[2rem] sm:rounded-[1.75rem] shadow-2xl shadow-black/30 overflow-hidden animate-slide-up sm:animate-scale-in">
 
         {/* Drag handle (mobile only) */}
         <div className="flex justify-center pt-3 pb-1 sm:hidden">
@@ -61,7 +61,7 @@ export default function TaskModal({ task, onClose }) {
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200/60 dark:border-slate-800">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl bg-violet-600/10 flex items-center justify-center text-violet-600">
               <Type size={15} />
@@ -90,7 +90,7 @@ export default function TaskModal({ task, onClose }) {
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
               placeholder="What do you need to do?"
-              className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/60 rounded-2xl py-3 px-4 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 text-sm focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10 transition-all"
+              className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300/80 dark:border-slate-700/60 rounded-2xl py-3 px-4 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 text-sm focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10 transition-all"
               autoFocus
               required
             />
@@ -106,7 +106,7 @@ export default function TaskModal({ task, onClose }) {
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               placeholder="Add some details..."
               rows={3}
-              className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/60 rounded-2xl py-3 px-4 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 text-sm focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10 transition-all resize-none"
+              className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300/80 dark:border-slate-700/60 rounded-2xl py-3 px-4 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 text-sm focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10 transition-all resize-none"
             />
           </div>
 
@@ -119,7 +119,7 @@ export default function TaskModal({ task, onClose }) {
               type="date"
               value={form.date}
               onChange={(e) => setForm({ ...form, date: e.target.value })}
-              className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/60 rounded-2xl py-3 px-4 text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10 transition-all"
+              className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300/80 dark:border-slate-700/60 rounded-2xl py-3 px-4 text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10 transition-all"
             />
           </div>
 
@@ -128,7 +128,7 @@ export default function TaskModal({ task, onClose }) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-sm font-bold hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all active:scale-95"
+              className="flex-1 py-3 rounded-2xl border border-slate-300/80 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-sm font-bold hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all active:scale-95"
             >
               Cancel
             </button>

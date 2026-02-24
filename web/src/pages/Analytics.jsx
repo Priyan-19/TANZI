@@ -20,7 +20,7 @@ const COLORS = {
 
 function ChartCard({ title, children, icon: Icon }) {
   return (
-    <div className="relative overflow-hidden backdrop-blur-xl bg-white/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/40 rounded-[1.5rem] md:rounded-[2rem] p-4 md:p-6 shadow-xl shadow-slate-200/20 dark:shadow-black/20 transition-all duration-300">
+    <div className="relative overflow-hidden backdrop-blur-xl bg-white/85 dark:bg-slate-900/40 border border-slate-300/80 dark:border-slate-800/40 rounded-[1.5rem] md:rounded-[2rem] p-4 md:p-6 shadow-xl shadow-slate-300/20 dark:shadow-black/20 transition-all duration-300">
       <div className="flex items-center justify-between mb-4 md:mb-6">
         <div className="flex items-center gap-2 md:gap-3">
           {Icon && (
@@ -122,14 +122,14 @@ export default function Analytics() {
             <div className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Performance Data</span>
           </div>
-          <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tighter italic">
+          <h1 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, fontStyle: 'italic', letterSpacing: '-0.04em', lineHeight: 1, paddingBottom: '4px', overflow: 'visible' }} className="text-3xl md:text-4xl text-slate-900 dark:text-slate-100">
             Strategic <span className="text-violet-600">Analyzers</span>
           </h1>
           <p className="text-slate-500 dark:text-slate-400 text-[10px] md:text-xs font-bold uppercase tracking-widest mt-1">Operational efficiency metrics</p>
         </div>
 
         {/* Period toggle */}
-        <div className="flex gap-1 p-1.5 self-start sm:self-auto bg-white/70 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/40 rounded-2xl shadow-md dark:shadow-black/10">
+        <div className="flex gap-1 p-1.5 self-start sm:self-auto bg-white/85 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-300/80 dark:border-slate-800/40 rounded-2xl shadow-md dark:shadow-black/10">
           {["week", "month"].map((v) => (
             <button
               key={v}
@@ -149,7 +149,7 @@ export default function Analytics() {
       {/* ─── Score Cards ─── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
         {/* Efficiency */}
-        <div className="relative overflow-hidden backdrop-blur-xl bg-white/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/40 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-7 shadow-xl shadow-slate-200/20 dark:shadow-black/20">
+        <div className="relative overflow-hidden backdrop-blur-xl bg-white/85 dark:bg-slate-900/40 border border-slate-300/80 dark:border-slate-800/40 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-7 shadow-xl shadow-slate-300/20 dark:shadow-black/20">
           <div className="flex items-center justify-between mb-4">
             <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 shadow-lg shadow-amber-500/20">
               <Award size={18} />
@@ -166,7 +166,7 @@ export default function Analytics() {
         </div>
 
         {/* Deployment Rate */}
-        <div className="relative overflow-hidden backdrop-blur-xl bg-white/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/40 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-7 shadow-xl shadow-slate-200/20 dark:shadow-black/20">
+        <div className="relative overflow-hidden backdrop-blur-xl bg-white/85 dark:bg-slate-900/40 border border-slate-300/80 dark:border-slate-800/40 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-7 shadow-xl shadow-slate-300/20 dark:shadow-black/20">
           <div className="flex items-center justify-between mb-4">
             <div className="w-9 h-9 rounded-xl bg-violet-600/10 flex items-center justify-center text-violet-600 shadow-lg shadow-violet-500/20">
               <TrendingUp size={18} />
@@ -178,7 +178,7 @@ export default function Analytics() {
         </div>
 
         {/* Total */}
-        <div className="relative overflow-hidden backdrop-blur-xl bg-white/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/40 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-7 shadow-xl shadow-slate-200/20 dark:shadow-black/20">
+        <div className="relative overflow-hidden backdrop-blur-xl bg-white/85 dark:bg-slate-900/40 border border-slate-300/80 dark:border-slate-800/40 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-7 shadow-xl shadow-slate-300/20 dark:shadow-black/20">
           <div className="flex items-center justify-between mb-4">
             <div className="w-9 h-9 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-500 shadow-lg shadow-cyan-500/20">
               <Calendar size={18} />
