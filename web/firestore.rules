@@ -1,0 +1,88 @@
+// firestore.rules
+// Deploy with: firebase deploy --only firestore:rules
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper functions ─────────────────────────────────────────────────────
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidTask() {
+      let task = request.resource.data;
+
+      return task.keys().hasAll(['userId', 'title', 'date', 'status'])
+        && task.userId == request.auth.uid
+        && task.title is string
+        && task.title.size() > 0
+        && task.title.size() <= 500
+        && task.date is string
+        && task.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && task.status in ['pending', 'completed'];
+    }
+
+    function isValidReport() {
+      let report = request.resource.data;
+
+      return report.keys().hasAll(['userId', 'date'])
+        && report.userId == request.auth.uid
+        && report.date is string
+        && report.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+    }
+
+    // ── Users collection ─────────────────────────────────────────────────────
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if false; // Prevent accidental deletion
+    }
+
+    // ── Tasks collection ─────────────────────────────────────────────────────
+
+    match /tasks/{taskId} {
+      allow read: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+
+      allow create: if isAuthenticated()
+        && isValidTask();
+
+      allow update: if isAuthenticated()
+        && resource.data.userId == request.auth.uid
+        && isValidTask();
+
+      allow delete: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    // ── Daily Reports collection ─────────────────────────────────────────────
+
+    match /dailyReports/{reportId} {
+
+      allow read: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+
+      // Admin SDK bypasses rules (for Cloud Functions)
+      // Client allowed only if user owns report
+      allow create, update: if isAuthenticated()
+        && isValidReport();
+
+      allow delete: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    // ── Deny everything else ─────────────────────────────────────────────────
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
