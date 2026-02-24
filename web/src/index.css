@@ -3,14 +3,21 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: light dark;
 }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+}
+
+.dark body {
   background-color: #020617;
+}
+
+body {
+  background-color: #f8fafc;
 }
 
 /* Custom scrollbar */
@@ -19,14 +26,26 @@ body {
 }
 
 ::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+
+.dark ::-webkit-scrollbar-track {
   background: #020617;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: #e2e8f0;
   border-radius: 4px;
 }
 
+.dark ::-webkit-scrollbar-thumb {
+  background: #1e293b;
+}
+
 ::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
   background: #334155;
 }

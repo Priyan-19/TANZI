@@ -46,13 +46,13 @@ export default function TaskModal({ task, onClose }) {
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden">
+      <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl shadow-black/20 dark:shadow-black/50 overflow-hidden transition-all">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
-          <h2 className="font-semibold text-slate-200">{isEdit ? "Edit Task" : "New Task"}</h2>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800 transition-colors">
+          <h2 className="font-semibold text-slate-800 dark:text-slate-200">{isEdit ? "Edit Task" : "New Task"}</h2>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-all"
+            className="p-1 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
           >
             <X size={18} />
           </button>
@@ -69,7 +69,7 @@ export default function TaskModal({ task, onClose }) {
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
               placeholder="What do you need to do?"
-              className="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2.5 px-4 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-violet-500 transition-colors"
+              className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl py-2.5 px-4 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-sm focus:outline-none focus:border-violet-500 transition-colors"
               autoFocus
               required
             />
@@ -84,7 +84,7 @@ export default function TaskModal({ task, onClose }) {
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               placeholder="Add some details..."
               rows={3}
-              className="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2.5 px-4 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-violet-500 transition-colors resize-none"
+              className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl py-2.5 px-4 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-sm focus:outline-none focus:border-violet-500 transition-colors resize-none"
             />
           </div>
 
@@ -96,8 +96,7 @@ export default function TaskModal({ task, onClose }) {
               type="date"
               value={form.date}
               onChange={(e) => setForm({ ...form, date: e.target.value })}
-              className="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2.5 px-4 text-slate-100 text-sm focus:outline-none focus:border-violet-500 transition-colors"
-              style={{ colorScheme: "dark" }}
+              className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl py-2.5 px-4 text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:border-violet-500 transition-colors"
             />
           </div>
 
@@ -105,7 +104,7 @@ export default function TaskModal({ task, onClose }) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-400 text-sm hover:text-slate-200 hover:bg-slate-800 transition-all"
+              className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-sm hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all font-medium"
             >
               Cancel
             </button>

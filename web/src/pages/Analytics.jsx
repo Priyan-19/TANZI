@@ -20,10 +20,10 @@ const COLORS = {
 
 function ChartCard({ title, children, icon: Icon }) {
   return (
-    <div className="bg-slate-900/60 border border-slate-800/50 rounded-2xl p-5">
+    <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/50 rounded-2xl p-5 shadow-sm transition-colors">
       <div className="flex items-center gap-2 mb-5">
-        {Icon && <Icon size={16} className="text-violet-400" />}
-        <h3 className="font-semibold text-slate-200 text-sm">{title}</h3>
+        {Icon && <Icon size={16} className="text-violet-500 dark:text-violet-400" />}
+        <h3 className="font-semibold text-slate-800 dark:text-slate-200 text-sm">{title}</h3>
       </div>
       {children}
     </div>
@@ -33,10 +33,10 @@ function ChartCard({ title, children, icon: Icon }) {
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-xl p-3 shadow-xl text-xs">
-      <p className="text-slate-300 font-medium mb-1">{label}</p>
+    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 shadow-xl text-xs">
+      <p className="text-slate-800 dark:text-slate-300 font-bold mb-1">{label}</p>
       {payload.map((p) => (
-        <p key={p.name} style={{ color: p.color }}>
+        <p key={p.name} style={{ color: p.color }} className="font-medium">
           {p.name}: <span className="font-bold">{p.value}{p.name === "rate" ? "%" : ""}</span>
         </p>
       ))}
@@ -101,17 +101,16 @@ export default function Analytics() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-100">Analytics</h1>
-          <p className="text-slate-400 text-sm">Your productivity insights</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Analytics</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">Your productivity insights</p>
         </div>
-        <div className="flex gap-1 p-1 bg-slate-900/60 border border-slate-800 rounded-xl">
+        <div className="flex gap-1 p-1 bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
           {["week", "month"].map((v) => (
             <button
               key={v}
               onClick={() => setView(v)}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium capitalize transition-all ${
-                view === v ? "bg-violet-500 text-white" : "text-slate-400 hover:text-slate-200"
-              }`}
+              className={`px-4 py-1.5 rounded-lg text-sm font-medium capitalize transition-all ${view === v ? "bg-violet-600 text-white shadow-md shadow-violet-500/20" : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                }`}
             >
               {v === "week" ? "This Week" : "This Month"}
             </button>
@@ -119,36 +118,35 @@ export default function Analytics() {
         </div>
       </div>
 
-      {/* Score cards */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-slate-900/60 border border-slate-800/50 rounded-2xl p-5">
+        <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/50 rounded-2xl p-5 shadow-sm transition-colors">
           <div className="flex items-center gap-2 mb-2">
-            <Award size={16} className="text-amber-400" />
-            <p className="text-xs text-slate-400 uppercase tracking-wider">Productivity Score</p>
+            <Award size={16} className="text-amber-500" />
+            <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Productivity Score</p>
           </div>
-          <p className="text-4xl font-bold text-amber-400">{score}</p>
-          <div className="mt-2 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+          <p className="text-4xl font-bold text-amber-500 tracking-tight">{score}</p>
+          <div className="mt-2 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all"
               style={{ width: `${score}%` }}
             />
           </div>
         </div>
-        <div className="bg-slate-900/60 border border-slate-800/50 rounded-2xl p-5">
+        <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/50 rounded-2xl p-5 shadow-sm transition-colors">
           <div className="flex items-center gap-2 mb-2">
-            <TrendingUp size={16} className="text-violet-400" />
-            <p className="text-xs text-slate-400 uppercase tracking-wider">Avg Completion</p>
+            <TrendingUp size={16} className="text-violet-500 dark:text-violet-400" />
+            <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Avg Completion</p>
           </div>
-          <p className="text-4xl font-bold text-violet-400">{avgCompletion}%</p>
-          <p className="text-xs text-slate-500 mt-2">{view === "week" ? "This week" : "This month"}</p>
+          <p className="text-4xl font-bold text-violet-600 dark:text-violet-400 tracking-tight">{avgCompletion}%</p>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">{view === "week" ? "This week" : "This month"}</p>
         </div>
-        <div className="bg-slate-900/60 border border-slate-800/50 rounded-2xl p-5">
+        <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/50 rounded-2xl p-5 shadow-sm transition-colors">
           <div className="flex items-center gap-2 mb-2">
-            <Calendar size={16} className="text-cyan-400" />
-            <p className="text-xs text-slate-400 uppercase tracking-wider">Total Tasks</p>
+            <Calendar size={16} className="text-cyan-600 dark:text-cyan-400" />
+            <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Total Tasks</p>
           </div>
-          <p className="text-4xl font-bold text-cyan-400">{tasks.length}</p>
-          <p className="text-xs text-slate-500 mt-2">all time</p>
+          <p className="text-4xl font-bold text-cyan-600 dark:text-cyan-400 tracking-tight">{tasks.length}</p>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">all time</p>
         </div>
       </div>
 
@@ -213,16 +211,16 @@ export default function Analytics() {
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <div className="w-3 h-3 rounded-full" style={{ background: COLORS.completed }} />
-                  <span className="text-xs text-slate-400">Completed</span>
+                  <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase">Completed</span>
                 </div>
-                <p className="text-2xl font-bold text-emerald-400">{totalCompleted}</p>
+                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{totalCompleted}</p>
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <div className="w-3 h-3 rounded-full" style={{ background: COLORS.pending }} />
-                  <span className="text-xs text-slate-400">Pending</span>
+                  <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase">Pending</span>
                 </div>
-                <p className="text-2xl font-bold text-amber-400">{totalPending}</p>
+                <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{totalPending}</p>
               </div>
             </div>
           </div>
