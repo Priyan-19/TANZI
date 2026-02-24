@@ -7,7 +7,7 @@ import { useTheme } from "../context/ThemeContext";
 import {
   LayoutDashboard, CheckSquare, BarChart3, LogOut,
   Sun, Moon, Menu, X, Zap, Bell,
-  CheckCircle2, AlertCircle, ChevronRight
+  AlertCircle, ChevronRight, Settings
 } from "lucide-react";
 import {
   requestNotificationPermission,
@@ -30,34 +30,56 @@ export default function Layout() {
   const [notifStatus, setNotifStatus] = useState(
     typeof Notification !== "undefined" ? Notification.permission : "default"
   );
+  const [notifsEnabled, setNotifsEnabled] = useState(() => {
+    const saved = localStorage.getItem("notifs_enabled");
+    return saved === null ? true : saved === "true";
+  });
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const tasksRef = useRef(tasks);
   tasksRef.current = tasks;
 
-  // ─── Start task reminders after login ─────────────────────────────────────
+  // Lock body scroll when mobile menu is open
   useEffect(() => {
-    if (!user) return;
+    if (mobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileMenuOpen]);
 
-    // Setup FCM foreground listener
+  useEffect(() => {
+    if (!user || !notifsEnabled) {
+      stopTaskReminders();
+      return;
+    }
     setupForegroundMessageHandler(null);
-
-    // Only start reminders if permission is already granted
     if (Notification.permission === "granted") {
       startTaskReminders(() => tasksRef.current, 30 * 60 * 1000);
     }
-
     return () => stopTaskReminders();
-  }, [user]);
+  }, [user, notifsEnabled]);
 
-  const handleNotifSetup = async () => {
-    const token = await requestNotificationPermission(user?.uid);
-    if (token) {
-      setNotifStatus("granted");
-      startTaskReminders(() => tasksRef.current, 30 * 60 * 1000);
+  const toggleNotifs = async () => {
+    if (!notifsEnabled) {
+      if (Notification.permission !== "granted") {
+        const token = await requestNotificationPermission(user?.uid);
+        if (token) {
+          setNotifStatus("granted");
+          setNotifsEnabled(true);
+          localStorage.setItem("notifs_enabled", "true");
+        } else {
+          setNotifStatus(Notification.permission);
+        }
+      } else {
+        setNotifsEnabled(true);
+        localStorage.setItem("notifs_enabled", "true");
+      }
     } else {
-      setNotifStatus(
-        typeof Notification !== "undefined" ? Notification.permission : "denied"
-      );
+      setNotifsEnabled(false);
+      localStorage.setItem("notifs_enabled", "false");
+      stopTaskReminders();
     }
   };
 
@@ -67,93 +89,77 @@ export default function Layout() {
     navigate("/login");
   };
 
-  // Pending tasks count for badge
   const today = new Date().toISOString().split("T")[0];
   const pendingCount = tasks.filter(
     (t) => t.date === today && t.status === "pending"
   ).length;
 
-  const isNotifGranted = notifStatus === "granted";
-  const isNotifDenied = notifStatus === "denied";
-
   return (
-    <div className="flex h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 overflow-hidden transition-colors duration-300">
-      {/* ─── Sidebar ─── */}
+    <div className="flex h-screen h-dvh bg-slate-50 text-slate-900 dark:bg-[#020617] dark:text-slate-100 overflow-hidden transition-colors duration-500 font-sans selection:bg-violet-500/30">
+
+      {/* ─── Desktop Sidebar ─────────────────────────────────────── */}
       <aside
         className={`
-          flex flex-col transition-all duration-300 border-r border-slate-200 dark:border-slate-800/70
-          bg-white dark:bg-gradient-to-b dark:from-slate-900 dark:to-slate-950
-          ${collapsed ? "w-16" : "w-64"}
+          hidden md:flex flex-col transition-all duration-300 m-4 rounded-3xl overflow-hidden
+          border border-slate-200/60 dark:border-slate-800/40
+          bg-white/70 dark:bg-slate-900/40 backdrop-blur-xl
+          shadow-2xl shadow-slate-200/50 dark:shadow-black/40
+          ${collapsed ? "w-20" : "w-64"}
         `}
       >
         {/* Logo */}
-        <div className="flex items-center px-4 py-5 border-b border-slate-200 dark:border-slate-800/70">
-          <Link
-            to="/"
-            className="flex items-center gap-3 hover:opacity-80 transition-opacity flex-1 min-w-0"
-          >
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-violet-500/20">
-              <Zap size={16} className="text-white" />
+        <div className="flex items-center px-4 py-6">
+          <Link to="/" className="flex items-center gap-3 flex-1 min-w-0 px-2">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-600 to-cyan-500 p-[2px] shadow-lg shadow-violet-500/30 flex-shrink-0">
+              <div className="w-full h-full bg-slate-900 rounded-[14px] flex items-center justify-center">
+                <Zap size={18} className="text-white fill-white" />
+              </div>
             </div>
             {!collapsed && (
-              <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent truncate">
+              <span className="font-black text-xl tracking-tighter bg-gradient-to-r from-violet-600 to-cyan-500 bg-clip-text text-transparent italic">
                 TANZI
               </span>
             )}
           </Link>
-          <button
-            onClick={() => setCollapsed((c) => !c)}
-            className="ml-auto text-slate-500 hover:text-slate-300 transition-colors p-1.5 rounded-lg hover:bg-slate-800/50"
-          >
-            {collapsed ? <ChevronRight size={16} /> : <Menu size={16} />}
-          </button>
         </div>
 
-        {/* User Info */}
+        {/* User Card */}
         {!collapsed && (
-          <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800/70">
+          <div className="mx-4 mb-4 p-4 rounded-2xl bg-slate-100/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center text-sm font-bold flex-shrink-0 shadow-md shadow-violet-500/20">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-500 to-cyan-400 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-violet-500/20 flex-shrink-0">
                 {(user?.displayName || user?.email || "U")[0].toUpperCase()}
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-slate-200 truncate">
-                  {user?.displayName || "User"}
-                </p>
-                <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+                <p className="text-sm font-bold truncate">{user?.displayName || "User"}</p>
+                <div className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[10px] font-medium text-slate-500 uppercase tracking-widest">Active</span>
+                </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Nav Links */}
-        <nav className="flex-1 px-2 py-4 space-y-0.5">
+        {/* Navigation */}
+        <nav className="flex-1 px-3 space-y-1">
           {navItems.map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
               to={to}
               end={to === "/app"}
               className={({ isActive }) =>
-                `relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200
+                `group relative flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-200
                 ${isActive
-                  ? "bg-violet-500/10 text-violet-600 dark:bg-violet-500/15 dark:text-violet-300 border border-violet-500/20 dark:border-violet-500/25"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60"
+                  ? "bg-violet-600 text-white shadow-lg shadow-violet-600/25 scale-[1.02]"
+                  : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200"
                 }`
               }
             >
-              <Icon size={18} className="flex-shrink-0" />
-              {!collapsed && <span className="text-sm font-medium">{label}</span>}
-              {/* Pending badge on Tasks */}
-              {label === "Tasks" && pendingCount > 0 && (
-                <span
-                  className={`
-                    ml-auto text-xs font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400
-                    ${collapsed
-                      ? "absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center text-[9px] bg-amber-500 text-white"
-                      : ""
-                    }
-                  `}
-                >
+              <Icon size={20} className="flex-shrink-0" />
+              {!collapsed && <span className="text-sm font-bold tracking-tight">{label}</span>}
+              {label === "Tasks" && pendingCount > 0 && !collapsed && (
+                <span className="ml-auto bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg shadow-amber-500/20">
                   {pendingCount}
                 </span>
               )}
@@ -162,103 +168,283 @@ export default function Layout() {
         </nav>
 
         {/* Bottom Actions */}
-        <div className="px-2 py-3 border-t border-slate-200 dark:border-slate-800/70 space-y-0.5">
-          {/* Notification button */}
-          {!isNotifGranted && !isNotifDenied && (
-            <button
-              onClick={handleNotifSetup}
-              className="flex items-center gap-3 px-3 py-2.5 w-full rounded-xl text-amber-400 hover:bg-amber-400/10 transition-all text-sm"
-              title="Enable Notifications"
-            >
-              <div className="relative flex-shrink-0">
-                <Bell size={17} />
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
-              </div>
-              {!collapsed && <span className="font-medium">Enable Notifications</span>}
-            </button>
-          )}
-
-          {isNotifGranted && (
-            <div
-              className="flex items-center gap-3 px-3 py-2 rounded-xl text-emerald-400/80 text-xs"
-              title="Notifications active"
-            >
-              <CheckCircle2 size={15} className="flex-shrink-0" />
-              {!collapsed && <span>Notifications active</span>}
+        <div className="p-3 space-y-1">
+          {/* Notification Toggle */}
+          <button
+            onClick={toggleNotifs}
+            className={`flex items-center gap-3 px-4 py-3 w-full rounded-2xl transition-all duration-200 group
+              ${notifsEnabled
+                ? "text-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20"
+                : "text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 border border-transparent"}`}
+          >
+            <div className="relative flex-shrink-0">
+              <Bell size={18} className={notifsEnabled ? "fill-emerald-500/20" : ""} />
+              {notifsEnabled && <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full animate-ping" />}
             </div>
-          )}
-
-          {isNotifDenied && (
-            <button
-              onClick={handleNotifSetup}
-              className="flex items-center gap-3 px-3 py-2.5 w-full rounded-xl text-red-500 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 transition-all text-sm group"
-              title="Notifications are blocked. Click to try re-enabling or check browser settings."
-            >
-              <AlertCircle size={15} className="flex-shrink-0" />
-              {!collapsed && (
+            {!collapsed && (
+              <>
                 <div className="flex flex-col items-start min-w-0">
-                  <span className="font-medium">Notifications blocked</span>
-                  <span className="text-[10px] opacity-70 truncate">Click to try again</span>
+                  <span className="text-xs font-bold leading-tight">Notifications</span>
+                  <span className={`text-[10px] font-medium uppercase tracking-tighter ${notifsEnabled ? "text-emerald-500/70" : "text-slate-500"}`}>
+                    {notifsEnabled ? "Enabled" : "Disabled"}
+                  </span>
                 </div>
-              )}
-            </button>
-          )}
+                <div className={`ml-auto w-8 h-4 rounded-full relative transition-colors duration-300 ${notifsEnabled ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700"}`}>
+                  <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-all duration-300 ${notifsEnabled ? "left-[18px]" : "left-0.5"}`} />
+                </div>
+              </>
+            )}
+          </button>
 
-          {/* Theme toggle */}
+          {/* Theme Toggle */}
           <button
             onClick={toggle}
-            className="flex items-center gap-3 px-3 py-2.5 w-full rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all text-sm"
-            title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            className="flex items-center gap-3 px-4 py-3 w-full rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200 transition-all font-bold text-xs"
           >
-            {isDark ? (
-              <Sun size={17} className="flex-shrink-0" />
-            ) : (
-              <Moon size={17} className="flex-shrink-0" />
-            )}
+            {isDark ? <Sun size={18} /> : <Moon size={18} />}
             {!collapsed && (isDark ? "Light Mode" : "Dark Mode")}
           </button>
 
           {/* Logout */}
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 px-3 py-2.5 w-full rounded-xl text-red-400 hover:bg-red-400/10 hover:text-red-300 transition-all text-sm"
-            title="Logout"
+            className="flex items-center gap-3 px-4 py-3 w-full rounded-2xl text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all font-bold text-xs group"
           >
-            <LogOut size={17} className="flex-shrink-0" />
-            {!collapsed && "Logout"}
+            <LogOut size={18} className="transition-transform group-hover:translate-x-0.5" />
+            {!collapsed && "Sign Out"}
           </button>
         </div>
+
+        {/* Collapse Toggle */}
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="p-3 mx-4 mb-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 flex items-center justify-center transition-all bg-white/50 dark:bg-slate-800/20"
+        >
+          {collapsed
+            ? <ChevronRight size={16} />
+            : <div className="flex items-center gap-2"><Menu size={16} /><span className="text-[10px] font-bold uppercase tracking-widest whitespace-nowrap">Shrink</span></div>
+          }
+        </button>
       </aside>
 
-      {/* ─── Main Content ─── */}
-      <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-950 flex flex-col transition-colors duration-300">
-        {/* Sticky top bar */}
-        <div className="sticky top-0 z-20 flex items-center justify-between px-6 py-3 bg-white/80 dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/50 flex-shrink-0">
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-300">
-            {new Date().toLocaleDateString("en-US", {
-              weekday: "long",
-              month: "long",
-              day: "numeric",
-            })}
-          </p>
-          <div className="flex items-center gap-3">
-            {pendingCount > 0 && (
-              <div className="flex items-center gap-1.5 text-xs text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2.5 py-1 rounded-full">
-                <AlertCircle size={11} />
-                {pendingCount} pending today
+      {/* ─── Main Content ────────────────────────────────────────── */}
+      <main className="flex-1 relative flex flex-col min-w-0 overflow-hidden">
+
+        {/* Top Floating Header */}
+        <header className="sticky top-0 z-40 p-3 md:p-4 pb-0">
+          <div className="flex items-center justify-between px-4 md:px-6 py-2.5 md:py-3 rounded-2xl bg-white/70 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/40 shadow-lg shadow-slate-200/30 dark:shadow-black/20">
+            <div className="flex items-center gap-3">
+              {/* Mobile menu button */}
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                className="md:hidden tap-target flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+                aria-label="Open menu"
+              >
+                <Menu size={20} />
+              </button>
+
+              {/* Mobile Logo */}
+              <Link to="/" className="md:hidden flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-600 to-cyan-500 p-[2px] shadow-md shadow-violet-500/25">
+                  <div className="w-full h-full bg-slate-900 rounded-[10px] flex items-center justify-center">
+                    <Zap size={14} className="text-white fill-white" />
+                  </div>
+                </div>
+                <span className="font-black text-base tracking-tighter bg-gradient-to-r from-violet-600 to-cyan-500 bg-clip-text text-transparent italic">TANZI</span>
+              </Link>
+
+              {/* Desktop date */}
+              <div className="hidden md:flex flex-col">
+                <h1 className="text-sm font-black tracking-tight flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-violet-500 shadow-[0_0_8px_rgba(139,92,246,0.5)]" />
+                  {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                </h1>
               </div>
-            )}
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center text-white text-xs font-bold shadow-md shadow-violet-500/20">
-              {(user?.displayName || user?.email || "U")[0].toUpperCase()}
+            </div>
+
+            <div className="flex items-center gap-2 md:gap-4">
+              {pendingCount > 0 && (
+                <div className="flex items-center gap-1.5 px-2.5 md:px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] md:text-xs font-bold animate-slide-up">
+                  <AlertCircle size={11} />
+                  <span>{pendingCount} Left</span>
+                </div>
+              )}
+              <div className="hidden md:block w-px h-6 bg-slate-200 dark:bg-slate-800" />
+              <button className="flex items-center gap-2 px-1 py-1 pr-2 md:pr-3 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-all border border-transparent hover:border-slate-200 dark:hover:border-slate-700/50">
+                <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center text-white text-xs font-bold shadow-md">
+                  {(user?.displayName || user?.email || "U")[0].toUpperCase()}
+                </div>
+                <span className="hidden lg:block text-xs font-bold tracking-tighter">My Account</span>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* Page Content */}
+        <div className="flex-1 overflow-y-auto no-scrollbar p-3 md:p-6 pb-28 md:pb-6">
+          <Outlet />
+        </div>
+
+        {/* ─── Mobile Bottom Navigation ─── */}
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50">
+          <div className="mx-3 mb-3 p-2 rounded-3xl bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-2xl border border-white/10 shadow-2xl shadow-black/60 flex items-center justify-around bottom-nav-safe">
+            {navItems.map(({ to, icon: Icon, label }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={to === "/app"}
+                className={({ isActive }) =>
+                  `relative flex flex-col items-center gap-1 px-4 py-2.5 rounded-2xl transition-all duration-200
+                  ${isActive
+                    ? "text-white"
+                    : "text-slate-500 hover:text-slate-300"
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    {isActive && (
+                      <div className="absolute inset-0 bg-violet-600/25 rounded-2xl" />
+                    )}
+                    <div className="relative">
+                      <Icon size={21} strokeWidth={isActive ? 2.5 : 1.8} />
+                      {label === "Tasks" && pendingCount > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-amber-500 text-white text-[8px] font-black rounded-full flex items-center justify-center shadow-lg">
+                          {pendingCount > 9 ? "9+" : pendingCount}
+                        </span>
+                      )}
+                    </div>
+                    <span className={`text-[9px] font-black uppercase tracking-widest ${isActive ? "text-violet-300" : ""}`}>
+                      {label}
+                    </span>
+                    {isActive && (
+                      <div className="absolute bottom-1 w-1 h-1 rounded-full bg-violet-400 shadow-[0_0_6px_rgba(167,139,250,0.8)]" />
+                    )}
+                  </>
+                )}
+              </NavLink>
+            ))}
+
+            {/* Theme toggle in bottom nav */}
+            <button
+              onClick={toggle}
+              className="flex flex-col items-center gap-1 px-4 py-2.5 rounded-2xl text-slate-500 hover:text-slate-300 transition-all"
+            >
+              {isDark ? <Sun size={21} strokeWidth={1.8} /> : <Moon size={21} strokeWidth={1.8} />}
+              <span className="text-[9px] font-black uppercase tracking-widest">
+                {isDark ? "Light" : "Dark"}
+              </span>
+            </button>
+          </div>
+        </nav>
+      </main>
+
+      {/* ─── Mobile Sidebar Overlay ─────────────────────────────── */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-[100] md:hidden animate-fade-in">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-md"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+
+          {/* Panel */}
+          <div className="absolute top-3 left-3 bottom-3 w-[min(80vw,300px)] bg-white dark:bg-[#0f172a] rounded-[28px] flex flex-col animate-slide-right border border-slate-200/50 dark:border-slate-800/60 shadow-2xl shadow-black/40 overflow-hidden">
+
+            {/* Panel Header */}
+            <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 to-cyan-500 p-[2px] shadow-lg shadow-violet-500/25">
+                  <div className="w-full h-full bg-slate-900 rounded-[11px] flex items-center justify-center">
+                    <Zap size={15} className="text-white fill-white" />
+                  </div>
+                </div>
+                <span className="font-black text-xl tracking-tighter bg-gradient-to-r from-violet-600 to-cyan-500 bg-clip-text text-transparent italic">TANZI</span>
+              </div>
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                className="tap-target flex items-center justify-center rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* User card */}
+            <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-500 to-cyan-400 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-violet-500/20 flex-shrink-0">
+                  {(user?.displayName || user?.email || "U")[0].toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold truncate text-slate-900 dark:text-slate-100">{user?.displayName || "User"}</p>
+                  <p className="text-[10px] text-slate-500 truncate">{user?.email}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Nav links */}
+            <div className="flex-1 px-3 py-3 space-y-1 overflow-y-auto">
+              {navItems.map(({ to, icon: Icon, label }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={to === "/app"}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-4 p-4 rounded-2xl font-bold transition-all
+                    ${isActive
+                      ? "bg-violet-600 text-white shadow-lg shadow-violet-600/20"
+                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <Icon size={20} />
+                      <span>{label}</span>
+                      {label === "Tasks" && pendingCount > 0 && (
+                        <span className={`ml-auto text-[10px] font-black px-2 py-0.5 rounded-full ${isActive ? "bg-white/20 text-white" : "bg-amber-500 text-white"}`}>
+                          {pendingCount}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </NavLink>
+              ))}
+            </div>
+
+            {/* Bottom actions */}
+            <div className="p-3 space-y-1 border-t border-slate-100 dark:border-slate-800">
+              <button
+                onClick={toggleNotifs}
+                className="flex items-center gap-4 w-full p-4 rounded-2xl font-bold transition-all text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <Bell size={20} />
+                <span className="flex-1 text-left">Notifications</span>
+                <div className={`w-10 h-5 rounded-full relative transition-colors duration-300 ${notifsEnabled ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600"}`}>
+                  <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300 ${notifsEnabled ? "left-[22px]" : "left-0.5"}`} />
+                </div>
+              </button>
+
+              <button
+                onClick={toggle}
+                className="flex items-center gap-4 w-full p-4 rounded-2xl font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+              >
+                {isDark ? <Sun size={20} /> : <Moon size={20} />}
+                {isDark ? "Light Mode" : "Dark Mode"}
+              </button>
+
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-4 w-full p-4 rounded-2xl font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
+              >
+                <LogOut size={20} />
+                Sign Out
+              </button>
             </div>
           </div>
         </div>
-
-        {/* Page content */}
-        <div className="flex-1">
-          <Outlet />
-        </div>
-      </main>
+      )}
     </div>
   );
 }

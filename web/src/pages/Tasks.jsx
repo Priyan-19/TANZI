@@ -1,14 +1,14 @@
 // src/pages/Tasks.jsx
 import { useState } from "react";
 import { useTask } from "../context/TaskContext";
-import { Plus, Search, Filter, CheckCircle2, Trash2, Edit3, Clock } from "lucide-react";
+import { Plus, Search, CheckCircle2, Trash2, Edit3, Clock, X } from "lucide-react";
 import TaskModal from "../components/TaskModal";
 import { format } from "date-fns";
 
 const FILTERS = [
   { key: "today", label: "Today" },
   { key: "week", label: "This Week" },
-  { key: "month", label: "This Month" },
+  { key: "month", label: "Month" },
 ];
 
 export default function Tasks() {
@@ -16,10 +16,11 @@ export default function Tasks() {
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editTask, setEditTask] = useState(null);
-  const [statusFilter, setStatusFilter] = useState("all"); // all | pending | completed
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const tasks = getFilteredTasks().filter((t) => {
-    const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) ||
+    const matchesSearch =
+      t.title.toLowerCase().includes(search.toLowerCase()) ||
       t.description?.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === "all" || t.status === statusFilter;
     return matchesSearch && matchesStatus;
@@ -40,78 +41,113 @@ export default function Tasks() {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+    <div className="max-w-4xl mx-auto space-y-4 md:space-y-6">
+
+      {/* ─── Header ─── */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pt-1 md:pt-2">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Tasks</h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm">{tasks.length} task{tasks.length !== 1 ? "s" : ""} found</p>
+          <div className="flex items-center gap-2 mb-2">
+            <div className="px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-violet-600 dark:text-violet-400">
+              LOGISTICS
+            </div>
+            <div className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Inventory</span>
+          </div>
+          <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tighter italic">
+            Objective <span className="text-violet-600">Archive</span>
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 text-[11px] font-bold uppercase tracking-widest mt-1">{tasks.length} entries registered</p>
         </div>
         <button
           onClick={() => { setEditTask(null); setShowModal(true); }}
-          className="px-4 py-2 rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500 text-white text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-opacity"
+          className="self-start sm:self-auto flex items-center gap-2 px-5 md:px-7 py-2.5 md:py-3 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[11px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-slate-900/20 dark:shadow-white/10"
         >
-          <Plus size={16} />
-          New Task
+          <Plus size={16} strokeWidth={3} />
+          <span>New Entry</span>
         </button>
       </div>
 
-      {/* Time filter tabs */}
-      <div className="flex gap-1 p-1 bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl mb-4 w-fit shadow-sm">
-        {FILTERS.map(({ key, label }) => (
+      {/* ─── Search Bar ─── */}
+      <div className="relative">
+        <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600 pointer-events-none" />
+        <input
+          type="text"
+          placeholder="Search tasks..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full bg-white/70 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/40 rounded-2xl py-3 pl-11 pr-10 text-sm font-medium text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-violet-500/50 transition-all shadow-lg shadow-slate-200/20 dark:shadow-black/10"
+        />
+        {search && (
           <button
-            key={key}
-            onClick={() => setFilter(key)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filter === key
-                ? "bg-violet-600 text-white shadow-md shadow-violet-500/20"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
-              }`}
+            onClick={() => setSearch("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
           >
-            {label}
+            <X size={14} />
           </button>
-        ))}
+        )}
       </div>
 
-      {/* Search + status filter */}
-      <div className="flex gap-3 mb-6">
-        <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
-          <input
-            type="text"
-            placeholder="Search tasks..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-sm text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-violet-500 transition-colors shadow-sm"
-          />
-        </div>
-        <div className="flex gap-1 p-1 bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
-          {["all", "pending", "completed"].map((s) => (
+      {/* ─── Filter Pills ─── */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        {/* Date filter */}
+        <div className="flex gap-1 p-1.5 bg-white/70 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/40 rounded-2xl shadow-md dark:shadow-black/10 overflow-x-auto no-scrollbar">
+          {FILTERS.map(({ key, label }) => (
             <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-all ${statusFilter === s
-                  ? "bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 shadow-sm"
+              key={key}
+              onClick={() => setFilter(key)}
+              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap
+                ${filter === key
+                  ? "bg-violet-600 text-white shadow-lg shadow-violet-500/30"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Status filter */}
+        <div className="flex gap-1 p-1.5 bg-white/70 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/40 rounded-2xl shadow-md dark:shadow-black/10">
+          {[
+            { key: "all", label: "All" },
+            { key: "pending", label: "Pending" },
+            { key: "completed", label: "Done" },
+          ].map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setStatusFilter(key)}
+              className={`flex-1 sm:flex-none px-3 md:px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all
+                ${statusFilter === key
+                  ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm"
                   : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-300"
                 }`}
             >
-              {s}
+              {label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Task List */}
+      {/* ─── Task List ─── */}
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-20 bg-white dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800 rounded-2xl animate-pulse" />
+            <div key={i} className="h-20 rounded-2xl animate-shimmer" />
           ))}
         </div>
       ) : tasks.length === 0 ? (
-        <div className="text-center py-16 bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800/50 rounded-2xl shadow-sm transition-colors">
-          <Clock size={32} className="mx-auto text-slate-200 dark:text-slate-700 mb-3" />
-          <p className="text-slate-600 dark:text-slate-400">No tasks found</p>
-          <p className="text-slate-400 dark:text-slate-600 text-sm mt-1">Try a different filter or add a new task</p>
+        <div className="text-center py-14 md:py-20 bg-white/60 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800/50 rounded-[1.5rem] md:rounded-[2rem] shadow-sm">
+          <Clock size={28} className="mx-auto text-slate-300 dark:text-slate-700 mb-3" />
+          <p className="text-slate-600 dark:text-slate-400 font-semibold text-sm">No tasks found</p>
+          <p className="text-slate-400 dark:text-slate-600 text-xs mt-1">Try a different filter or add a new task</p>
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="mt-4 text-xs text-violet-500 hover:text-violet-400 font-semibold transition-colors"
+            >
+              Clear search
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-2">
@@ -119,7 +155,7 @@ export default function Tasks() {
           {(statusFilter === "all" || statusFilter === "pending") && pending.length > 0 && (
             <>
               {statusFilter === "all" && (
-                <p className="text-xs font-semibold text-amber-400 uppercase tracking-wider px-1 mb-2 mt-4">
+                <p className="text-[10px] font-black text-amber-500 uppercase tracking-wider px-1 pt-2 pb-1">
                   Pending ({pending.length})
                 </p>
               )}
@@ -140,7 +176,7 @@ export default function Tasks() {
           {(statusFilter === "all" || statusFilter === "completed") && completed.length > 0 && (
             <>
               {statusFilter === "all" && (
-                <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wider px-1 mb-2 mt-4">
+                <p className="text-[10px] font-black text-emerald-500 uppercase tracking-wider px-1 pt-4 pb-1">
                   Completed ({completed.length})
                 </p>
               )}
@@ -159,6 +195,9 @@ export default function Tasks() {
         </div>
       )}
 
+      {/* Spacer for mobile nav */}
+      <div className="h-2 md:h-0" />
+
       {showModal && (
         <TaskModal
           task={editTask}
@@ -173,29 +212,39 @@ function TaskCard({ task, onComplete, onUncomplete, onEdit, onDelete }) {
   const isCompleted = task.status === "completed";
 
   return (
-    <div className={`group flex items-start gap-4 p-4 bg-white dark:bg-slate-900/60 border rounded-2xl transition-all hover:border-slate-300 dark:hover:border-slate-700 shadow-sm ${isCompleted ? "border-slate-100 dark:border-slate-800/30 opacity-70" : "border-slate-200 dark:border-slate-800"
-      }`}>
+    <div
+      className={`group flex items-start gap-3 md:gap-4 p-4 md:p-5 bg-white/70 dark:bg-slate-900/40 backdrop-blur-xl border rounded-[1.25rem] md:rounded-[1.5rem] transition-all duration-200 shadow-md shadow-slate-200/20 dark:shadow-black/10
+        ${isCompleted
+          ? "border-slate-100 dark:border-slate-800/30 opacity-50 grayscale"
+          : "border-slate-200/60 dark:border-slate-800/40 hover:border-violet-500/30 hover:translate-x-0.5 active:scale-[0.99]"
+        }`}
+    >
+      {/* Checkbox */}
       <button
         onClick={() => isCompleted ? onUncomplete(task.id) : onComplete(task.id)}
-        className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 transition-all flex items-center justify-center ${isCompleted
-            ? "bg-emerald-500 border-emerald-500"
-            : "border-slate-300 dark:border-slate-600 hover:border-violet-500"
+        className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 transition-all flex items-center justify-center tap-target
+          ${isCompleted
+            ? "bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/25"
+            : "border-slate-300 dark:border-slate-600 hover:border-violet-500 active:scale-90"
           }`}
       >
-        {isCompleted && <CheckCircle2 size={12} className="text-white" />}
+        {isCompleted && <CheckCircle2 size={11} className="text-white" />}
       </button>
 
+      {/* Content */}
       <div className="flex-1 min-w-0">
-        <p className={`font-medium text-sm ${isCompleted ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-800 dark:text-slate-200"}`}>
+        <p className={`font-semibold text-sm leading-snug ${isCompleted ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-800 dark:text-slate-200"}`}>
           {task.title}
         </p>
         {task.description && (
-          <p className="text-xs text-slate-500 mt-0.5 truncate leading-relaxed">{task.description}</p>
+          <p className="text-xs text-slate-500 mt-0.5 leading-relaxed line-clamp-1">{task.description}</p>
         )}
-        <div className="flex items-center gap-2 mt-2">
-          <span className="text-[10px] font-medium text-slate-400 dark:text-slate-600 uppercase tracking-tight">{format(new Date(task.date), "MMM d")}</span>
-          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider ${isCompleted ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-            }`}>
+        <div className="flex items-center gap-2 mt-2 flex-wrap">
+          <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-600 uppercase tracking-tight">
+            {format(new Date(task.date), "MMM d")}
+          </span>
+          <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider
+            ${isCompleted ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-amber-500/10 text-amber-600 dark:text-amber-400"}`}>
             {task.status}
           </span>
           {task.completedAt && (
@@ -206,17 +255,19 @@ function TaskCard({ task, onComplete, onUncomplete, onEdit, onDelete }) {
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button
-          onClick={() => onEdit(task)}
-          className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
-        >
-          <Edit3 size={14} />
-        </button>
+      {/* Actions — always visible on mobile, hover on desktop */}
+      <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex-shrink-0">
+        {!isCompleted && (
+          <button
+            onClick={() => onEdit(task)}
+            className="p-2 rounded-xl text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all tap-target flex items-center justify-center"
+          >
+            <Edit3 size={14} />
+          </button>
+        )}
         <button
           onClick={() => onDelete(task.id)}
-          className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-400/10 transition-all"
+          className="p-2 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-400/10 transition-all tap-target flex items-center justify-center"
         >
           <Trash2 size={14} />
         </button>

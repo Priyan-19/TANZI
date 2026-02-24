@@ -3,11 +3,11 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useTask } from "../context/TaskContext";
 import {
-  getWeeklyAnalytics, getMonthlyAnalytics, calculateProductivityScore
+  getWeeklyAnalytics, getMonthlyAnalytics, calculateProductivityScore,
 } from "../services/analyticsService";
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import { TrendingUp, Award, Calendar, BarChart3 } from "lucide-react";
 
@@ -20,10 +20,18 @@ const COLORS = {
 
 function ChartCard({ title, children, icon: Icon }) {
   return (
-    <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/50 rounded-2xl p-5 shadow-sm transition-colors">
-      <div className="flex items-center gap-2 mb-5">
-        {Icon && <Icon size={16} className="text-violet-500 dark:text-violet-400" />}
-        <h3 className="font-semibold text-slate-800 dark:text-slate-200 text-sm">{title}</h3>
+    <div className="relative overflow-hidden backdrop-blur-xl bg-white/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/40 rounded-[1.5rem] md:rounded-[2rem] p-4 md:p-6 shadow-xl shadow-slate-200/20 dark:shadow-black/20 transition-all duration-300">
+      <div className="flex items-center justify-between mb-4 md:mb-6">
+        <div className="flex items-center gap-2 md:gap-3">
+          {Icon && (
+            <div className="w-7 h-7 md:w-8 md:h-8 rounded-xl bg-violet-600/10 flex items-center justify-center text-violet-600">
+              <Icon size={15} className="md:hidden" />
+              <Icon size={18} className="hidden md:block" />
+            </div>
+          )}
+          <h3 className="text-[11px] md:text-sm font-black text-slate-900 dark:text-slate-100 uppercase tracking-widest">{title}</h3>
+        </div>
+        <div className="w-1.5 h-1.5 rounded-full bg-slate-200 dark:bg-slate-800" />
       </div>
       {children}
     </div>
@@ -51,7 +59,7 @@ export default function Analytics() {
   const [monthData, setMonthData] = useState([]);
   const [score, setScore] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState("week"); // week | month
+  const [view, setView] = useState("week");
 
   useEffect(() => {
     if (!user) return;
@@ -72,7 +80,6 @@ export default function Analytics() {
 
   const currentData = view === "week" ? weekData : monthData;
 
-  // Pie chart data - all tasks total
   const totalCompleted = tasks.filter((t) => t.status === "completed").length;
   const totalPending = tasks.filter((t) => t.status === "pending").length;
   const pieData = [
@@ -80,16 +87,22 @@ export default function Analytics() {
     { name: "Pending", value: totalPending },
   ];
 
-  const avgCompletion = currentData.length > 0
-    ? Math.round(currentData.reduce((s, d) => s + (d.completionRate || 0), 0) / currentData.length)
-    : 0;
+  const avgCompletion =
+    currentData.length > 0
+      ? Math.round(currentData.reduce((s, d) => s + (d.completionRate || 0), 0) / currentData.length)
+      : 0;
 
   if (loading) {
     return (
-      <div className="p-6">
+      <div className="max-w-6xl mx-auto p-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-32 rounded-[1.5rem] animate-shimmer" />
+          ))}
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-64 bg-slate-900/60 border border-slate-800 rounded-2xl animate-pulse" />
+            <div key={i} className="h-64 rounded-[1.5rem] animate-shimmer" />
           ))}
         </div>
       </div>
@@ -97,68 +110,96 @@ export default function Analytics() {
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+    <div className="max-w-6xl mx-auto space-y-4 md:space-y-6">
+
+      {/* ─── Header ─── */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pt-1 md:pt-2">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Analytics</h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm">Your productivity insights</p>
+          <div className="flex items-center gap-2 mb-2">
+            <div className="px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-violet-600 dark:text-violet-400">
+              INTELLIGENCE REPORT
+            </div>
+            <div className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Performance Data</span>
+          </div>
+          <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tighter italic">
+            Strategic <span className="text-violet-600">Analyzers</span>
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 text-[10px] md:text-xs font-bold uppercase tracking-widest mt-1">Operational efficiency metrics</p>
         </div>
-        <div className="flex gap-1 p-1 bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
+
+        {/* Period toggle */}
+        <div className="flex gap-1 p-1.5 self-start sm:self-auto bg-white/70 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/40 rounded-2xl shadow-md dark:shadow-black/10">
           {["week", "month"].map((v) => (
             <button
               key={v}
               onClick={() => setView(v)}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium capitalize transition-all ${view === v ? "bg-violet-600 text-white shadow-md shadow-violet-500/20" : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+              className={`px-4 md:px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all
+                ${view === v
+                  ? "bg-violet-600 text-white shadow-lg shadow-violet-500/30"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                 }`}
             >
-              {v === "week" ? "This Week" : "This Month"}
+              {v === "week" ? "7 Days" : "30 Days"}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/50 rounded-2xl p-5 shadow-sm transition-colors">
-          <div className="flex items-center gap-2 mb-2">
-            <Award size={16} className="text-amber-500" />
-            <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Productivity Score</p>
+      {/* ─── Score Cards ─── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+        {/* Efficiency */}
+        <div className="relative overflow-hidden backdrop-blur-xl bg-white/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/40 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-7 shadow-xl shadow-slate-200/20 dark:shadow-black/20">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 shadow-lg shadow-amber-500/20">
+              <Award size={18} />
+            </div>
+            <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Efficiency Index</p>
           </div>
-          <p className="text-4xl font-bold text-amber-500 tracking-tight">{score}</p>
-          <div className="mt-2 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+          <p className="text-4xl md:text-5xl font-black text-amber-500 tracking-tighter italic mb-3">{score}</p>
+          <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
             <div
-              className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all"
+              className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-1000 shadow-[0_0_8px_rgba(245,158,11,0.4)]"
               style={{ width: `${score}%` }}
             />
           </div>
         </div>
-        <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/50 rounded-2xl p-5 shadow-sm transition-colors">
-          <div className="flex items-center gap-2 mb-2">
-            <TrendingUp size={16} className="text-violet-500 dark:text-violet-400" />
-            <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Avg Completion</p>
+
+        {/* Deployment Rate */}
+        <div className="relative overflow-hidden backdrop-blur-xl bg-white/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/40 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-7 shadow-xl shadow-slate-200/20 dark:shadow-black/20">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-9 h-9 rounded-xl bg-violet-600/10 flex items-center justify-center text-violet-600 shadow-lg shadow-violet-500/20">
+              <TrendingUp size={18} />
+            </div>
+            <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Completion Rate</p>
           </div>
-          <p className="text-4xl font-bold text-violet-600 dark:text-violet-400 tracking-tight">{avgCompletion}%</p>
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">{view === "week" ? "This week" : "This month"}</p>
+          <p className="text-4xl md:text-5xl font-black text-violet-600 dark:text-violet-400 tracking-tighter italic mb-2">{avgCompletion}%</p>
+          <p className="text-[9px] md:text-[10px] font-bold text-slate-500 uppercase tracking-widest">{view === "week" ? "Current Protocol" : "Extended Protocol"}</p>
         </div>
-        <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/50 rounded-2xl p-5 shadow-sm transition-colors">
-          <div className="flex items-center gap-2 mb-2">
-            <Calendar size={16} className="text-cyan-600 dark:text-cyan-400" />
-            <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Total Tasks</p>
+
+        {/* Total */}
+        <div className="relative overflow-hidden backdrop-blur-xl bg-white/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/40 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-7 shadow-xl shadow-slate-200/20 dark:shadow-black/20">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-9 h-9 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-500 shadow-lg shadow-cyan-500/20">
+              <Calendar size={18} />
+            </div>
+            <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Total Captured</p>
           </div>
-          <p className="text-4xl font-bold text-cyan-600 dark:text-cyan-400 tracking-tight">{tasks.length}</p>
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">all time</p>
+          <p className="text-4xl md:text-5xl font-black text-cyan-600 dark:text-cyan-400 tracking-tighter italic mb-2">{tasks.length}</p>
+          <p className="text-[9px] md:text-[10px] font-bold text-slate-500 uppercase tracking-widest">Global Lifecycle</p>
         </div>
       </div>
 
-      {/* Charts grid */}
+      {/* ─── Charts ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Line chart - Completion Trend */}
+
+        {/* Line Chart */}
         <ChartCard title="Completion Trend" icon={TrendingUp}>
-          <ResponsiveContainer width="100%" height={220}>
+          <ResponsiveContainer width="100%" height={200}>
             <LineChart data={currentData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-              <XAxis dataKey="label" tick={{ fill: "#64748b", fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: "#64748b", fontSize: 11 }} axisLine={false} tickLine={false} domain={[0, 100]} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" opacity={0.3} />
+              <XAxis dataKey="label" tick={{ fill: "#64748b", fontSize: 10 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: "#64748b", fontSize: 10 }} axisLine={false} tickLine={false} domain={[0, 100]} width={30} />
               <Tooltip content={<CustomTooltip />} />
               <Line
                 type="monotone"
@@ -166,39 +207,39 @@ export default function Analytics() {
                 name="rate"
                 stroke={COLORS.rate}
                 strokeWidth={2.5}
-                dot={{ fill: COLORS.rate, r: 4 }}
-                activeDot={{ r: 6 }}
+                dot={{ fill: COLORS.rate, r: 3 }}
+                activeDot={{ r: 5 }}
               />
             </LineChart>
           </ResponsiveContainer>
         </ChartCard>
 
-        {/* Bar chart - Daily Completed */}
+        {/* Bar Chart */}
         <ChartCard title="Tasks Completed" icon={BarChart3}>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={currentData} barSize={20}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-              <XAxis dataKey="label" tick={{ fill: "#64748b", fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: "#64748b", fontSize: 11 }} axisLine={false} tickLine={false} />
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={currentData} barSize={14}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" opacity={0.3} />
+              <XAxis dataKey="label" tick={{ fill: "#64748b", fontSize: 10 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: "#64748b", fontSize: 10 }} axisLine={false} tickLine={false} width={25} />
               <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="completedTasks" name="completed" fill={COLORS.completed} radius={[6, 6, 0, 0]} />
-              <Bar dataKey="pendingTasks" name="pending" fill={COLORS.pending} radius={[6, 6, 0, 0]} />
+              <Bar dataKey="completedTasks" name="completed" fill={COLORS.completed} radius={[5, 5, 0, 0]} />
+              <Bar dataKey="pendingTasks" name="pending" fill={COLORS.pending} radius={[5, 5, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
 
-        {/* Pie chart */}
+        {/* Pie Chart */}
         <ChartCard title="Overall Distribution" icon={BarChart3}>
-          <div className="flex items-center gap-6">
-            <ResponsiveContainer width={180} height={180}>
+          <div className="flex items-center justify-center gap-6 md:gap-8">
+            <ResponsiveContainer width={160} height={160}>
               <PieChart>
                 <Pie
                   data={pieData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={50}
-                  outerRadius={80}
-                  paddingAngle={3}
+                  innerRadius={44}
+                  outerRadius={72}
+                  paddingAngle={4}
                   dataKey="value"
                 >
                   <Cell fill={COLORS.completed} />
@@ -207,44 +248,47 @@ export default function Analytics() {
                 <Tooltip formatter={(val, name) => [`${val} tasks`, name]} />
               </PieChart>
             </ResponsiveContainer>
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <div className="w-3 h-3 rounded-full" style={{ background: COLORS.completed }} />
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ background: COLORS.completed }} />
                   <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase">Completed</span>
                 </div>
-                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{totalCompleted}</p>
+                <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 tracking-tighter">{totalCompleted}</p>
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <div className="w-3 h-3 rounded-full" style={{ background: COLORS.pending }} />
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ background: COLORS.pending }} />
                   <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase">Pending</span>
                 </div>
-                <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{totalPending}</p>
+                <p className="text-2xl font-black text-amber-600 dark:text-amber-400 tracking-tighter">{totalPending}</p>
               </div>
             </div>
           </div>
         </ChartCard>
 
-        {/* Weekly summary table */}
+        {/* Breakdown Table */}
         <ChartCard title={`${view === "week" ? "Daily" : "Weekly"} Breakdown`} icon={Calendar}>
-          <div className="space-y-2 overflow-y-auto max-h-[220px] pr-1">
+          <div className="space-y-2.5 overflow-y-auto max-h-[180px] pr-1 no-scrollbar">
             {currentData.map((d, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <span className="text-xs text-slate-500 w-10 flex-shrink-0">{d.label}</span>
-                <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
+              <div key={i} className="flex items-center gap-2.5">
+                <span className="text-[10px] text-slate-500 w-8 flex-shrink-0 font-medium">{d.label}</span>
+                <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-violet-500 to-cyan-500 rounded-full"
+                    className="h-full bg-gradient-to-r from-violet-500 to-cyan-500 rounded-full transition-all duration-700"
                     style={{ width: `${d.completionRate || 0}%` }}
                   />
                 </div>
-                <span className="text-xs text-slate-400 w-8 text-right">{d.completionRate || 0}%</span>
-                <span className="text-xs text-slate-600 w-12 text-right">{d.completedTasks || 0}/{d.totalTasks || 0}</span>
+                <span className="text-[10px] text-slate-400 w-7 text-right font-bold">{d.completionRate || 0}%</span>
+                <span className="text-[10px] text-slate-500 w-10 text-right">{d.completedTasks || 0}/{d.totalTasks || 0}</span>
               </div>
             ))}
           </div>
         </ChartCard>
       </div>
+
+      {/* Spacer for mobile nav */}
+      <div className="h-2 md:h-0" />
     </div>
   );
 }
