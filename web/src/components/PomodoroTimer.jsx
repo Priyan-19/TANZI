@@ -4,7 +4,7 @@ import { Play, Pause, RotateCcw, Coffee, SkipForward, Volume2, VolumeX } from "l
 import { notifyPomodoroComplete } from "../services/notificationService";
 
 const MODES = {
-  focus: { label: "Focus", duration: 25 * 60, accent: "#8b5cf6", accentEnd: "#06b6d4", bg: "from-violet-500/10 to-cyan-500/5", badge: "bg-violet-500/15 text-violet-400 border-violet-500/25" },
+  focus: { label: "Focus", duration: 30 * 60, accent: "#8b5cf6", accentEnd: "#06b6d4", bg: "from-violet-500/10 to-cyan-500/5", badge: "bg-violet-500/15 text-violet-400 border-violet-500/25" },
   short: { label: "Short Break", duration: 5 * 60, accent: "#10b981", accentEnd: "#06b6d4", bg: "from-emerald-500/10 to-cyan-500/5", badge: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25" },
   long: { label: "Long Break", duration: 15 * 60, accent: "#06b6d4", accentEnd: "#8b5cf6", bg: "from-cyan-500/10 to-violet-500/5", badge: "bg-cyan-500/15 text-cyan-400 border-cyan-500/25" },
 };
