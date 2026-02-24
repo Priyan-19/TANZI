@@ -122,7 +122,7 @@ export default function Dashboard() {
     <div className="max-w-6xl mx-auto space-y-4 md:space-y-6">
 
       {/* ─── Hero Header ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pt-1 md:pt-2">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <div className="px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-violet-600 dark:text-violet-400">

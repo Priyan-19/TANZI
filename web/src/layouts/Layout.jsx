@@ -63,20 +63,28 @@ export default function Layout() {
 
   const toggleNotifs = async () => {
     if (!notifsEnabled) {
+      // ── Trying to ENABLE ─────────────────────────────────────────
       if (Notification.permission !== "granted") {
-        const token = await requestNotificationPermission(user?.uid);
-        if (token) {
-          setNotifStatus("granted");
+        // Need to ask for permission first
+        await requestNotificationPermission(user?.uid).catch(() => { });
+        const perm = typeof Notification !== "undefined" ? Notification.permission : "default";
+        setNotifStatus(perm);
+        if (perm === "granted") {
           setNotifsEnabled(true);
           localStorage.setItem("notifs_enabled", "true");
-        } else {
-          setNotifStatus(Notification.permission);
+          startTaskReminders(() => tasksRef.current, 30 * 60 * 1000);
         }
+        // If denied, we just don't enable — user can see it stays off
       } else {
+        // Permission already granted — enable immediately, no token needed
         setNotifsEnabled(true);
         localStorage.setItem("notifs_enabled", "true");
+        startTaskReminders(() => tasksRef.current, 30 * 60 * 1000);
+        // Best-effort FCM token refresh (don't block on it)
+        requestNotificationPermission(user?.uid).catch(() => { });
       }
     } else {
+      // ── DISABLE ──────────────────────────────────────────────────
       setNotifsEnabled(false);
       localStorage.setItem("notifs_enabled", "false");
       stopTaskReminders();
@@ -281,7 +289,7 @@ export default function Layout() {
         </header>
 
         {/* Page Content */}
-        <div className="flex-1 overflow-y-auto no-scrollbar p-3 md:p-6 pb-28 md:pb-6">
+        <div className="flex-1 overflow-y-auto no-scrollbar px-3 pt-2 pb-28 md:px-6 md:pt-3 md:pb-6">
           <Outlet />
         </div>
 

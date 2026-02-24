@@ -92,8 +92,6 @@ export default function PomodoroTimer({ className = "" }) {
 
   const minutes = String(Math.floor(timeLeft / 60)).padStart(2, "0");
   const seconds = String(timeLeft % 60).padStart(2, "0");
-  const progress = 1 - timeLeft / MODES[mode].duration;
-  const circumference = 2 * Math.PI * 52;
   const currentMode = MODES[mode];
 
   return (
@@ -103,42 +101,21 @@ export default function PomodoroTimer({ className = "" }) {
       {/* ── Mobile: Stacked layout, Desktop: Side-by-side ── */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 md:gap-6">
 
-        {/* Circular Progress Ring */}
+        {/* Clean Time Display */}
         <div className="flex items-center gap-4 sm:block">
-          <div className="relative w-24 h-24 md:w-32 md:h-32 flex-shrink-0">
-            <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
-              <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" strokeWidth="8" className="text-slate-100 dark:text-slate-800/50" />
-              <circle
-                cx="60" cy="60" r="52"
-                fill="none"
-                stroke="url(#pomGrad)"
-                strokeWidth="10"
-                strokeLinecap="round"
-                strokeDasharray={circumference}
-                strokeDashoffset={circumference * (1 - progress)}
-                className="transition-all duration-1000 ease-out"
-              />
-              <defs>
-                <linearGradient id="pomGrad" x1="0%" y1="0%" x2="100%">
-                  <stop offset="0%" stopColor="#8b5cf6" />
-                  <stop offset="100%" stopColor="#06b6d4" />
-                </linearGradient>
-              </defs>
-            </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-xl md:text-2xl font-black text-slate-900 dark:text-slate-100 font-mono tracking-tighter italic leading-none">
-                {minutes}:{seconds}
+          <div className="relative flex-shrink-0 flex flex-col items-center justify-center w-24 h-24 md:w-28 md:h-28 rounded-3xl bg-slate-100/60 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/30">
+            <span className="text-2xl md:text-3xl font-black text-slate-900 dark:text-slate-100 font-mono tracking-tighter italic leading-none">
+              {minutes}:{seconds}
+            </span>
+            <div className="flex items-center gap-1 mt-1.5">
+              <span className={`w-1.5 h-1.5 rounded-full ${running ? "bg-emerald-500 animate-pulse" : "bg-red-400"}`} />
+              <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">
+                {running ? "ACTIVE" : "IDLE"}
               </span>
-              <div className="flex items-center gap-1 mt-1">
-                <span className={`w-1.5 h-1.5 rounded-full ${running ? "bg-emerald-500 animate-pulse" : "bg-red-400"}`} />
-                <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">
-                  {running ? "ACTIVE" : "IDLE"}
-                </span>
-              </div>
             </div>
           </div>
 
-          {/* Sessions badge — shows next to clock on mobile */}
+          {/* Sessions badge — next to clock on mobile */}
           <div className="flex sm:hidden items-center gap-1.5 px-3 py-1.5 bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
             <Coffee size={13} className="text-emerald-500" />
             <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{sessions} Cycles</span>
