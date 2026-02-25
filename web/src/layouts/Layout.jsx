@@ -90,27 +90,55 @@ export default function Layout() {
     if (!user || !notifsEnabled || notifFrequency === "off") {
       stopTaskReminders();
       setCountdown(0);
+      localStorage.removeItem("next_checkin_at");
       return;
     }
     setupForegroundMessageHandler(null);
     const freqSeconds = parseFreq(notifFrequency);
+
     if (Notification.permission === "granted" && freqSeconds > 0) {
+      // Logic for persistent countdown
+      const savedTarget = localStorage.getItem("next_checkin_at");
+      let targetTime = parseInt(savedTarget);
+      const now = Date.now();
+
+      if (!targetTime || targetTime < now || targetTime > now + (freqSeconds * 1000)) {
+        targetTime = now + (freqSeconds * 1000);
+        localStorage.setItem("next_checkin_at", targetTime.toString());
+      }
+
+      const initialRemaining = Math.max(0, Math.floor((targetTime - now) / 1000));
+      setCountdown(initialRemaining);
+
       startTaskReminders(() => tasksRef.current, freqSeconds * 1000, () => userRef.current);
-      setCountdown(freqSeconds);
     }
     return () => stopTaskReminders();
   }, [user, notifsEnabled, notifFrequency]);
 
   useEffect(() => {
-    if (!notifsEnabled || notifFrequency === "off" || countdown <= 0) return;
+    if (!notifsEnabled || notifFrequency === "off" || countdown < 0) return;
+
     const timer = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) return parseFreq(notifFrequency);
-        return prev - 1;
-      });
+      const targetTime = parseInt(localStorage.getItem("next_checkin_at") || "0");
+      const now = Date.now();
+
+      if (targetTime > 0) {
+        const remaining = Math.max(0, Math.floor((targetTime - now) / 1000));
+
+        if (remaining <= 0) {
+          // Timer expired, set next one
+          const freqSeconds = parseFreq(notifFrequency);
+          const nextTarget = Date.now() + (freqSeconds * 1000);
+          localStorage.setItem("next_checkin_at", nextTarget.toString());
+          setCountdown(freqSeconds);
+        } else {
+          setCountdown(remaining);
+        }
+      }
     }, 1000);
+
     return () => clearInterval(timer);
-  }, [notifsEnabled, notifFrequency, countdown]);
+  }, [notifsEnabled, notifFrequency]);
 
   const formatCountdown = (seconds) => {
     if (seconds <= 0) return "";
@@ -282,11 +310,11 @@ export default function Layout() {
             </div>
           )}
 
-          {/* Countdown Display */}
+          {/* Timer Display */}
           {notifsEnabled && notifFrequency !== 'off' && countdown > 0 && !collapsed && (
-            <div className="mx-4 mb-1 flex items-center gap-2 text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] animate-pulse">
-              <Clock size={10} strokeWidth={3} />
-              <span>Next Check-in: {formatCountdown(countdown)}</span>
+            <div className="mb-3 flex items-center gap-3 text-sm font-black text-cyan-400 dark:text-cyan-400 uppercase tracking-[0.15em] bg-cyan-500/10 p-3.5 rounded-2xl border border-cyan-500/20 shadow-[0_0_15px_rgba(34,211,238,0.1)] backdrop-blur-md">
+              <Clock size={16} strokeWidth={3} className="text-cyan-500" />
+              <span className="drop-shadow-sm">Next Check-in: {formatCountdown(countdown)}</span>
             </div>
           )}
 
@@ -305,7 +333,7 @@ export default function Layout() {
           >
             <div className="relative flex-shrink-0">
               <Bell size={18} className={notifsEnabled && notifFrequency !== 'off' ? "fill-emerald-500/20" : notifsEnabled && notifFrequency === 'off' ? "fill-amber-500/20" : "fill-red-500/20"} />
-              {notifsEnabled && notifFrequency !== 'off' && <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full animate-ping" />}
+              {notifsEnabled && notifFrequency !== 'off' && <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full" />}
               {notifsEnabled && notifFrequency === 'off' && <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full" />}
             </div>
             {!collapsed && (
@@ -336,29 +364,45 @@ export default function Layout() {
 
           {/* Frequency Selector */}
           {notifsEnabled && !collapsed && showFreqSelector && (
-            <div className="mx-2 p-2 rounded-2xl bg-white/50 dark:bg-slate-800/20 border border-slate-200 dark:border-slate-800 animate-slide-down">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 mb-2">Check-in Frequency</p>
-              <div className="grid grid-cols-3 gap-1 mb-2">
-                {["15m", "30m", "1h", "2h", "off"].map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => updateFrequency(f)}
-                    className={`px-1 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-tight transition-all
-                      ${notifFrequency === f
-                        ? "bg-violet-600 text-white shadow-md shadow-violet-500/20"
-                        : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700/50"}`}
-                  >
-                    {f}
-                  </button>
-                ))}
+            <div className="p-3 rounded-2xl bg-white/50 dark:bg-slate-800/20 border border-slate-200 dark:border-slate-800 animate-slide-down">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-2.5">Check-in Frequency</p>
+
+              <div className="space-y-1.5">
+                {/* Row 1: 15m, 30m, 1h */}
+                <div className="grid grid-cols-3 gap-1.5">
+                  {["15m", "30m", "1h"].map((f) => (
+                    <button
+                      key={f}
+                      onClick={() => updateFrequency(f)}
+                      className={`px-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-tight transition-all
+                        ${notifFrequency === f
+                          ? "bg-violet-600 text-white shadow-md shadow-violet-500/20"
+                          : "text-slate-500 bg-slate-100/50 dark:bg-slate-700/30 hover:bg-slate-200 dark:hover:bg-slate-700/50"}`}
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Row 2: Off */}
+                <button
+                  onClick={() => updateFrequency("off")}
+                  className={`w-full py-2 rounded-xl text-[10px] font-bold uppercase tracking-tight transition-all
+                    ${notifFrequency === "off"
+                      ? "bg-amber-500 text-white shadow-md shadow-amber-500/20"
+                      : "text-slate-500 bg-slate-100/50 dark:bg-slate-700/30 hover:bg-slate-200 dark:hover:bg-slate-700/50"}`}
+                >
+                  Turn Off
+                </button>
               </div>
-              <div className="px-1 grid grid-cols-4 gap-1.5 mt-2">
+
+              <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50 flex gap-1.5">
                 <input
                   type="number"
                   placeholder="MIN"
                   value={customFreq}
                   onChange={(e) => setCustomFreq(e.target.value)}
-                  className="col-span-2 bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-[10px] font-black text-slate-800 dark:text-white focus:outline-none focus:border-violet-500"
+                  className="flex-1 min-w-0 bg-slate-100/80 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-black text-slate-800 dark:text-white focus:outline-none focus:border-violet-500 transition-colors"
                 />
                 <button
                   onClick={() => {
@@ -367,21 +411,9 @@ export default function Layout() {
                       setCustomFreq("");
                     }
                   }}
-                  className="bg-violet-600 text-white text-[9px] font-black uppercase rounded-lg shadow-lg shadow-violet-500/20 active:scale-95 transition-all"
+                  className="px-4 bg-violet-600 text-white text-[10px] font-black uppercase rounded-xl shadow-lg shadow-violet-500/25 active:scale-95 transition-all"
                 >
                   Set
-                </button>
-                <button
-                  onClick={async () => {
-                    const { showInAppNotification } = await import("../services/notificationService");
-                    showInAppNotification("🚀 System Check", "Notification system is active and working!", { duration: 3000 });
-                    if (Notification.permission === "granted") {
-                      new Notification("🚀 System Check", { body: "Browser notifications are enabled!" });
-                    }
-                  }}
-                  className="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-[9px] font-black uppercase rounded-lg active:scale-95 transition-all flex-shrink-0"
-                >
-                  Test
                 </button>
               </div>
             </div>

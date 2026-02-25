@@ -93,11 +93,31 @@ export async function setupForegroundMessageHandler(onNotification) {
 
 /**
  * Show a native browser notification (requires permission).
+ * Uses Service Worker if available to support actions and background clicks.
  */
-export function showBrowserNotification(title, body, options = {}) {
+export async function showBrowserNotification(title, body, options = {}) {
   if (Notification.permission !== "granted") return;
 
   try {
+    // 1. Try Service Worker Registration (Supports Actions on Mobile)
+    if ("serviceWorker" in navigator) {
+      const registration = await navigator.serviceWorker.ready;
+      if (registration) {
+        await registration.showNotification(title, {
+          body,
+          icon: "/favicon.svg",
+          badge: "/favicon.svg",
+          tag: options.tag || "tanzi-notification",
+          requireInteraction: options.requireInteraction || false,
+          actions: options.actions || [],
+          data: options.data || {},
+          ...options,
+        });
+        return;
+      }
+    }
+
+    // 2. Fallback to default Notification API
     const notification = new Notification(title, {
       body,
       icon: "/favicon.svg",
@@ -204,9 +224,15 @@ export function startTaskReminders(getTasksFn, intervalMs = 30 * 60 * 1000, getU
 
     // Show browser notification
     if (Notification.permission === "granted") {
+      const user = getUserFn ? getUserFn() : null;
       showBrowserNotification(title, body, {
         tag: "tanzi-task-reminder",
-        requireInteraction: false,
+        requireInteraction: true,
+        data: { userId: user?.uid, type: "SMART_REACH_OUT" },
+        actions: [
+          { action: "FREE", title: "✅ I'M FREE" },
+          { action: "BUSY", title: "⏳ BUSY" }
+        ],
         onClick: () => window.focus(),
       });
     }
