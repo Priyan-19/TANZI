@@ -35,17 +35,31 @@ export default function Layout() {
     return saved === null ? true : saved === "true";
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [showNotifBanner, setShowNotifBanner] = useState(false);
+  const [notifFrequency, setNotifFrequency] = useState("1h");
+  const [showFreqSelector, setShowFreqSelector] = useState(false);
   const navigate = useNavigate();
   const tasksRef = useRef(tasks);
   tasksRef.current = tasks;
 
-  // Sync notif status on mount
+  // Sync notif status and settings on mount/user change
   useEffect(() => {
     if (typeof Notification !== "undefined") {
       setNotifStatus(Notification.permission);
     }
-  }, []);
+    if (user?.uid) {
+      // Basic fetch of user settings if not in auth context
+      import("../firebase/config").then(({ db }) => {
+        import("firebase/firestore").then(({ doc, getDoc }) => {
+          getDoc(doc(db, "users", user.uid)).then(snap => {
+            if (snap.exists()) {
+              const data = snap.data();
+              if (data.notifFrequency) setNotifFrequency(data.notifFrequency);
+            }
+          });
+        });
+      });
+    }
+  }, [user]);
 
   // Lock body scroll when mobile menu is open
   useEffect(() => {
@@ -107,6 +121,18 @@ export default function Layout() {
       setNotifsEnabled(false);
       localStorage.setItem("notifs_enabled", "false");
       stopTaskReminders();
+    }
+  };
+
+  const updateFrequency = async (freq) => {
+    setNotifFrequency(freq);
+    if (!user) return;
+    try {
+      const { db } = await import("../firebase/config");
+      const { doc, updateDoc } = await import("firebase/firestore");
+      await updateDoc(doc(db, "users", user.uid), { notifFrequency: freq });
+    } catch (err) {
+      console.error("Failed to update frequency:", err);
     }
   };
 
@@ -214,7 +240,10 @@ export default function Layout() {
 
           {/* Notification Toggle */}
           <button
-            onClick={toggleNotifs}
+            onClick={() => {
+              toggleNotifs();
+              if (!notifsEnabled && notifStatus !== "denied") setShowFreqSelector(true);
+            }}
             className={`flex items-center gap-3 px-4 py-3 w-full rounded-2xl transition-all duration-200 group
               ${notifStatus === "denied"
                 ? "text-amber-500 bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20"
@@ -232,15 +261,46 @@ export default function Layout() {
                   <span className="text-xs font-bold leading-tight">Notifications</span>
                   <span className={`text-[10px] font-medium uppercase tracking-tighter ${notifStatus === "denied" ? "text-amber-500/80" : notifsEnabled ? "text-emerald-500/70" : "text-slate-500"
                     }`}>
-                    {notifStatus === "denied" ? "Blocked" : notifsEnabled ? "Enabled" : "Disabled"}
+                    {notifStatus === "denied" ? "Blocked" : notifsEnabled ? (notifFrequency === 'off' ? 'Paused' : notifFrequency) : "Disabled"}
                   </span>
                 </div>
-                <div className={`ml-auto w-8 h-4 rounded-full relative transition-colors duration-300 ${notifsEnabled ? "bg-emerald-500" : notifStatus === "denied" ? "bg-amber-400" : "bg-slate-300 dark:bg-slate-700"}`}>
-                  <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-all duration-300 ${notifsEnabled ? "left-[18px]" : "left-0.5"}`} />
+                <div className="ml-auto flex items-center gap-2">
+                  {notifsEnabled && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setShowFreqSelector(!showFreqSelector); }}
+                      className="p-1.5 rounded-lg hover:bg-emerald-500/20 transition-colors"
+                    >
+                      <Settings size={12} className={showFreqSelector ? "rotate-90 transition-transform" : ""} />
+                    </button>
+                  )}
+                  <div className={`w-8 h-4 rounded-full relative transition-colors duration-300 ${notifsEnabled ? "bg-emerald-500" : notifStatus === "denied" ? "bg-amber-400" : "bg-slate-300 dark:bg-slate-700"}`}>
+                    <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-all duration-300 ${notifsEnabled ? "left-[18px]" : "left-0.5"}`} />
+                  </div>
                 </div>
               </>
             )}
           </button>
+
+          {/* Frequency Selector */}
+          {notifsEnabled && !collapsed && showFreqSelector && (
+            <div className="mx-2 p-2 rounded-2xl bg-white/50 dark:bg-slate-800/20 border border-slate-200 dark:border-slate-800 animate-slide-down">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 mb-2">Check-in Frequency</p>
+              <div className="grid grid-cols-3 gap-1">
+                {["15m", "30m", "1h", "2h", "off"].map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => updateFrequency(f)}
+                    className={`px-1 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-tight transition-all
+                      ${notifFrequency === f
+                        ? "bg-violet-600 text-white shadow-md shadow-violet-500/20"
+                        : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700/50"}`}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Theme Toggle */}
           <button

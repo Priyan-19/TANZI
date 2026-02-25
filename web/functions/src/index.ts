@@ -1,5 +1,4 @@
-// functions/src/index.ts
-// Firebase Cloud Functions for Task Analizer
+// Firebase Cloud Functions for Task Analyzer
 // Deploy with: firebase deploy --only functions
 
 import * as functions from "firebase-functions";
@@ -9,105 +8,104 @@ admin.initializeApp();
 const db = admin.firestore();
 const messaging = admin.messaging();
 
-// ─── Hourly "Are you Free or Busy?" notification ─────────────────────────────
-// Triggered every hour via Cloud Scheduler (Pub/Sub)
-// Schedule: "0 8-22 * * *"  (every hour from 8 AM to 10 PM)
-
+// ─── Smart Dynamic Notification System ────────────────────────────────────────
+// Triggered every 15 minutes via Cloud Scheduler
+// Schedule: "*/15 8-22 * * *" (8 AM to 10 PM)
 export const sendHourlyNotifications = functions.pubsub
-  .schedule("0 8-22 * * *")
-  .timeZone("UTC") // adjust to your timezone e.g., "America/New_York"
+  .schedule("*/15 8-22 * * *")
+  .timeZone("UTC") // ideally should be dynamic per user, but for now UTC
   .onRun(async () => {
-    const hour = new Date().getHours();
-    console.log(`Hourly notification job running at hour: ${hour}`);
+    const now = Date.now();
+    const today = new Date().toISOString().split("T")[0];
 
-    // Fetch all users who have an FCM token
+    const freqMap: Record<string, number> = {
+      "15m": 15 * 60 * 1000,
+      "30m": 30 * 60 * 1000,
+      "1h": 60 * 60 * 1000,
+      "2h": 120 * 60 * 1000,
+    };
+
+    console.log(`Smart notification job running at: ${new Date().toISOString()}`);
+
+    // Fetch users with FCM tokens and notifications enabled
     const usersSnap = await db
       .collection("users")
       .where("fcmToken", "!=", null)
       .get();
 
-    if (usersSnap.empty) {
-      console.log("No users with FCM tokens found.");
-      return null;
-    }
+    if (usersSnap.empty) return null;
 
-    const today = new Date().toISOString().split("T")[0];
     const promises: Promise<any>[] = [];
 
-    usersSnap.forEach((userDoc) => {
-      const { fcmToken, name } = userDoc.data();
-      if (!fcmToken) return;
+    for (const userDoc of usersSnap.docs) {
+      const userData = userDoc.data();
+      const { fcmToken, name, notifFrequency = "1h", lastHourlyNotifAt, busyUntil } = userData;
 
-      // Check if user has pending tasks today
+      if (!fcmToken || notifFrequency === "off") continue;
+
+      const interval = freqMap[notifFrequency] || freqMap["1h"];
+      const lastSend = lastHourlyNotifAt ? lastHourlyNotifAt.toMillis() : 0;
+      const busyUntilTime = busyUntil ? busyUntil.toMillis() : 0;
+
+      // Logic check: Is it time to notify and is user NOT busy?
+      // Busy check: skip if current time is less than busyUntilTime
+      if (now < lastSend + (interval - 60000)) continue; // -1 minute buffer for scheduler jitter
+      if (now < busyUntilTime) {
+        console.log(`Skipping notification for user ${userDoc.id} as they are BUSY until ${new Date(busyUntilTime).toLocaleTimeString()}`);
+        continue;
+      }
+
+      // Check if user has pending tasks today before bothering them
       const taskCheck = db
         .collection("tasks")
         .where("userId", "==", userDoc.id)
         .where("date", "==", today)
         .where("status", "==", "pending")
+        .limit(1)
         .get()
-        .then((tasksSnap) => {
-          if (tasksSnap.empty) return; // No tasks to notify about
+        .then(async (tasksSnap) => {
+          if (tasksSnap.empty) return;
 
           const message: admin.messaging.Message = {
             token: fcmToken,
             notification: {
-              title: "⏰ Quick check-in!",
-              body: `Hey ${name || "there"}, are you free or busy right now?`,
+              title: "Are you Free or Busy?",
+              body: `Hey ${name || "there"}, you have pending tasks today. Ready to focus?`,
             },
             data: {
-              type: "FREE_OR_BUSY",
+              type: "SMART_REACH_OUT",
               userId: userDoc.id,
-              pendingCount: String(tasksSnap.size),
-              actionUrl: "/tasks",
-            },
-            android: {
-              priority: "high",
-              notification: {
-                channelId: "task_reminders",
-                clickAction: "FREE_OR_BUSY_ACTION",
-              },
-            },
-            apns: {
-              payload: {
-                aps: {
-                  category: "FREE_OR_BUSY_CATEGORY",
-                  sound: "default",
-                },
-              },
+              actionUrl: "/app/tasks",
             },
             webpush: {
               notification: {
-                icon: "/icon-192.png",
-                badge: "/badge.png",
+                icon: "/favicon.svg",
+                badge: "/favicon.svg",
                 actions: [
-                  { action: "FREE", title: "✅ I'm Free!" },
-                  { action: "BUSY", title: "⏳ I'm Busy" },
+                  { action: "FREE", title: "✅ I'M FREE" },
+                  { action: "BUSY", title: "⏳ BUSY" },
                 ],
                 requireInteraction: true,
               },
               fcmOptions: {
-                link: "/tasks",
+                link: "/app/tasks",
               },
             },
           };
 
-          return messaging.send(message).catch((err) => {
-            console.error(`Failed to send to ${userDoc.id}:`, err.code);
-            // If token is invalid, remove it
-            if (
-              err.code === "messaging/registration-token-not-registered" ||
-              err.code === "messaging/invalid-registration-token"
-            ) {
-              return db.doc(`users/${userDoc.id}`).update({ fcmToken: null });
-            }
+          await messaging.send(message);
+          return userDoc.ref.update({
+            lastHourlyNotifAt: admin.firestore.Timestamp.now(),
           });
+        })
+        .catch((err) => {
+          console.error(`Error sending to ${userDoc.id}:`, err);
         });
 
       promises.push(taskCheck);
-    });
+    }
 
     await Promise.allSettled(promises);
-    console.log(`Hourly notifications dispatched to ${usersSnap.size} users.`);
     return null;
   });
 
