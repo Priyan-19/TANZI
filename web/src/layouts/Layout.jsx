@@ -7,7 +7,7 @@ import { useTheme } from "../context/ThemeContext";
 import {
   LayoutDashboard, CheckSquare, BarChart3, LogOut,
   Sun, Moon, Menu, X, Zap, Bell,
-  AlertCircle, ChevronRight, Settings
+  AlertCircle, ChevronRight, Settings, Clock
 } from "lucide-react";
 import {
   requestNotificationPermission,
@@ -37,9 +37,24 @@ export default function Layout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifFrequency, setNotifFrequency] = useState("1h");
   const [showFreqSelector, setShowFreqSelector] = useState(false);
+  const [showNotifBanner, setShowNotifBanner] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const [customFreq, setCustomFreq] = useState("");
   const navigate = useNavigate();
   const tasksRef = useRef(tasks);
   tasksRef.current = tasks;
+  const userRef = useRef(user);
+  userRef.current = user;
+
+  const parseFreq = (f) => {
+    if (!f || f === "off") return 0;
+    if (typeof f === 'string') {
+      if (f.endsWith("m")) return parseInt(f) * 60;
+      if (f.endsWith("h")) return parseInt(f) * 3600;
+    }
+    const val = parseInt(f);
+    return isNaN(val) ? 0 : val * 60;
+  };
 
   // Sync notif status and settings on mount/user change
   useEffect(() => {
@@ -72,16 +87,37 @@ export default function Layout() {
   }, [mobileMenuOpen]);
 
   useEffect(() => {
-    if (!user || !notifsEnabled) {
+    if (!user || !notifsEnabled || notifFrequency === "off") {
       stopTaskReminders();
+      setCountdown(0);
       return;
     }
     setupForegroundMessageHandler(null);
-    if (Notification.permission === "granted") {
-      startTaskReminders(() => tasksRef.current, 30 * 60 * 1000);
+    const freqSeconds = parseFreq(notifFrequency);
+    if (Notification.permission === "granted" && freqSeconds > 0) {
+      startTaskReminders(() => tasksRef.current, freqSeconds * 1000, () => userRef.current);
+      setCountdown(freqSeconds);
     }
     return () => stopTaskReminders();
-  }, [user, notifsEnabled]);
+  }, [user, notifsEnabled, notifFrequency]);
+
+  useEffect(() => {
+    if (!notifsEnabled || notifFrequency === "off" || countdown <= 0) return;
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) return parseFreq(notifFrequency);
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [notifsEnabled, notifFrequency, countdown]);
+
+  const formatCountdown = (seconds) => {
+    if (seconds <= 0) return "";
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
 
   const toggleNotifs = async () => {
     if (!notifsEnabled) {
@@ -103,7 +139,11 @@ export default function Layout() {
         if (perm === "granted") {
           setNotifsEnabled(true);
           localStorage.setItem("notifs_enabled", "true");
-          startTaskReminders(() => tasksRef.current, 30 * 60 * 1000);
+          const freqSeconds = parseFreq(notifFrequency);
+          if (freqSeconds > 0) {
+            startTaskReminders(() => tasksRef.current, freqSeconds * 1000, () => userRef.current);
+            setCountdown(freqSeconds);
+          }
         } else if (perm === "denied") {
           setShowNotifBanner(true);
           setTimeout(() => setShowNotifBanner(false), 7000);
@@ -112,7 +152,11 @@ export default function Layout() {
         // Permission already granted — enable immediately, no token needed
         setNotifsEnabled(true);
         localStorage.setItem("notifs_enabled", "true");
-        startTaskReminders(() => tasksRef.current, 30 * 60 * 1000);
+        const freqSeconds = parseFreq(notifFrequency);
+        if (freqSeconds > 0) {
+          startTaskReminders(() => tasksRef.current, freqSeconds * 1000, () => userRef.current);
+          setCountdown(freqSeconds);
+        }
         // Best-effort FCM token refresh (don't block on it)
         requestNotificationPermission(user?.uid).catch(() => { });
       }
@@ -238,54 +282,63 @@ export default function Layout() {
             </div>
           )}
 
-          {/* Notification Toggle */}
-          <button
+          {/* Countdown Display */}
+          {notifsEnabled && notifFrequency !== 'off' && countdown > 0 && !collapsed && (
+            <div className="mx-4 mb-1 flex items-center gap-2 text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] animate-pulse">
+              <Clock size={10} strokeWidth={3} />
+              <span>Next Check-in: {formatCountdown(countdown)}</span>
+            </div>
+          )}
+
+          {/* Notification Toggle Container */}
+          <div
             onClick={() => {
               toggleNotifs();
               if (!notifsEnabled && notifStatus !== "denied") setShowFreqSelector(true);
             }}
-            className={`flex items-center gap-3 px-4 py-3 w-full rounded-2xl transition-all duration-200 group
-              ${notifStatus === "denied"
-                ? "text-amber-500 bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20"
-                : notifsEnabled
-                  ? "text-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20"
-                  : "text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 border border-transparent"}`}
+            className={`flex items-center gap-3 px-4 py-3 w-full rounded-2xl transition-all duration-200 group cursor-pointer
+              ${notifStatus === "denied" || !notifsEnabled
+                ? "text-red-500 bg-red-500/5 dark:bg-red-500/10 border border-red-500/20"
+                : notifFrequency === 'off'
+                  ? "text-amber-500 bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20"
+                  : "text-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20"}`}
           >
             <div className="relative flex-shrink-0">
-              <Bell size={18} className={notifsEnabled ? "fill-emerald-500/20" : ""} />
-              {notifsEnabled && <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full animate-ping" />}
+              <Bell size={18} className={notifsEnabled && notifFrequency !== 'off' ? "fill-emerald-500/20" : notifsEnabled && notifFrequency === 'off' ? "fill-amber-500/20" : "fill-red-500/20"} />
+              {notifsEnabled && notifFrequency !== 'off' && <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full animate-ping" />}
+              {notifsEnabled && notifFrequency === 'off' && <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full" />}
             </div>
             {!collapsed && (
               <>
                 <div className="flex flex-col items-start min-w-0">
                   <span className="text-xs font-bold leading-tight">Notifications</span>
-                  <span className={`text-[10px] font-medium uppercase tracking-tighter ${notifStatus === "denied" ? "text-amber-500/80" : notifsEnabled ? "text-emerald-500/70" : "text-slate-500"
+                  <span className={`text-[10px] font-medium uppercase tracking-tighter ${!notifsEnabled ? "text-red-500/80" : notifFrequency === 'off' ? "text-amber-500/80" : "text-emerald-500/70"
                     }`}>
-                    {notifStatus === "denied" ? "Blocked" : notifsEnabled ? (notifFrequency === 'off' ? 'Paused' : notifFrequency) : "Disabled"}
+                    {!notifsEnabled ? "Disabled" : notifFrequency === 'off' ? 'Paused' : notifFrequency}
                   </span>
                 </div>
                 <div className="ml-auto flex items-center gap-2">
                   {notifsEnabled && (
                     <button
                       onClick={(e) => { e.stopPropagation(); setShowFreqSelector(!showFreqSelector); }}
-                      className="p-1.5 rounded-lg hover:bg-emerald-500/20 transition-colors"
+                      className={`p-1.5 rounded-lg transition-colors ${notifFrequency === 'off' ? 'hover:bg-amber-500/20' : 'hover:bg-emerald-500/20'}`}
                     >
                       <Settings size={12} className={showFreqSelector ? "rotate-90 transition-transform" : ""} />
                     </button>
                   )}
-                  <div className={`w-8 h-4 rounded-full relative transition-colors duration-300 ${notifsEnabled ? "bg-emerald-500" : notifStatus === "denied" ? "bg-amber-400" : "bg-slate-300 dark:bg-slate-700"}`}>
+                  <div className={`w-8 h-4 rounded-full relative transition-colors duration-300 ${!notifsEnabled ? "bg-red-500" : notifFrequency === 'off' ? "bg-amber-500" : "bg-emerald-500"}`}>
                     <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-all duration-300 ${notifsEnabled ? "left-[18px]" : "left-0.5"}`} />
                   </div>
                 </div>
               </>
             )}
-          </button>
+          </div>
 
           {/* Frequency Selector */}
           {notifsEnabled && !collapsed && showFreqSelector && (
             <div className="mx-2 p-2 rounded-2xl bg-white/50 dark:bg-slate-800/20 border border-slate-200 dark:border-slate-800 animate-slide-down">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 mb-2">Check-in Frequency</p>
-              <div className="grid grid-cols-3 gap-1">
+              <div className="grid grid-cols-3 gap-1 mb-2">
                 {["15m", "30m", "1h", "2h", "off"].map((f) => (
                   <button
                     key={f}
@@ -298,6 +351,38 @@ export default function Layout() {
                     {f}
                   </button>
                 ))}
+              </div>
+              <div className="px-1 grid grid-cols-4 gap-1.5 mt-2">
+                <input
+                  type="number"
+                  placeholder="MIN"
+                  value={customFreq}
+                  onChange={(e) => setCustomFreq(e.target.value)}
+                  className="col-span-2 bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-[10px] font-black text-slate-800 dark:text-white focus:outline-none focus:border-violet-500"
+                />
+                <button
+                  onClick={() => {
+                    if (customFreq) {
+                      updateFrequency(`${customFreq}m`);
+                      setCustomFreq("");
+                    }
+                  }}
+                  className="bg-violet-600 text-white text-[9px] font-black uppercase rounded-lg shadow-lg shadow-violet-500/20 active:scale-95 transition-all"
+                >
+                  Set
+                </button>
+                <button
+                  onClick={async () => {
+                    const { showInAppNotification } = await import("../services/notificationService");
+                    showInAppNotification("🚀 System Check", "Notification system is active and working!", { duration: 3000 });
+                    if (Notification.permission === "granted") {
+                      new Notification("🚀 System Check", { body: "Browser notifications are enabled!" });
+                    }
+                  }}
+                  className="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-[9px] font-black uppercase rounded-lg active:scale-95 transition-all flex-shrink-0"
+                >
+                  Test
+                </button>
               </div>
             </div>
           )}
@@ -523,11 +608,15 @@ export default function Layout() {
             <div className="p-3 space-y-1 border-t border-slate-100 dark:border-slate-800">
               <button
                 onClick={toggleNotifs}
-                className="flex items-center gap-4 w-full p-4 rounded-2xl font-bold transition-all text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                className={`flex items-center gap-4 w-full p-4 rounded-2xl font-bold transition-all
+                  ${!notifsEnabled ? "text-red-500 hover:bg-red-500/10" : notifFrequency === 'off' ? "text-amber-500 hover:bg-amber-500/10" : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"}`}
               >
-                <Bell size={20} />
+                <div className="relative">
+                  <Bell size={20} className={notifsEnabled ? (notifFrequency === 'off' ? "text-amber-500" : "text-emerald-500") : "text-red-500"} />
+                  {notifsEnabled && notifFrequency !== 'off' && <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full animate-ping" />}
+                </div>
                 <span className="flex-1 text-left">Notifications</span>
-                <div className={`w-10 h-5 rounded-full relative transition-colors duration-300 ${notifsEnabled ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600"}`}>
+                <div className={`w-10 h-5 rounded-full relative transition-colors duration-300 ${!notifsEnabled ? "bg-red-500" : notifFrequency === 'off' ? "bg-amber-500" : "bg-emerald-500"}`}>
                   <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300 ${notifsEnabled ? "left-[22px]" : "left-0.5"}`} />
                 </div>
               </button>

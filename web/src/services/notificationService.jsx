@@ -163,12 +163,25 @@ let reminderInterval = null;
  * and notifies the user if they're running late.
  * 
  * @param {Function} getTasksFn - function that returns current tasks array
- * @param {number} intervalMs - how often to check (default: every 30 minutes)
+ * @param {number} intervalMs - how often to check
+ * @param {Function} getUserFn - optional function to check user busy status
  */
-export function startTaskReminders(getTasksFn, intervalMs = 30 * 60 * 1000) {
+export function startTaskReminders(getTasksFn, intervalMs = 30 * 60 * 1000, getUserFn = null) {
   stopTaskReminders(); // Clear any existing reminder
 
   const checkAndNotify = () => {
+    // 1. Check Busy Status
+    if (getUserFn) {
+      const userData = getUserFn();
+      if (userData?.busyUntil) {
+        const busyDate = userData.busyUntil.toDate ? userData.busyUntil.toDate() : new Date(userData.busyUntil);
+        if (busyDate > new Date()) {
+          console.log("User is BUSY until", busyDate.toLocaleTimeString(), "- Skipping notification.");
+          return;
+        }
+      }
+    }
+
     const tasks = getTasksFn();
     if (!tasks || tasks.length === 0) return;
 
