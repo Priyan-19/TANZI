@@ -39,6 +39,7 @@ export default function Layout() {
   const [showFreqSelector, setShowFreqSelector] = useState(false);
   const [showNotifBanner, setShowNotifBanner] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [isAlarmRinging, setIsAlarmRinging] = useState(false);
   const [customFreq, setCustomFreq] = useState("");
   const navigate = useNavigate();
   const tasksRef = useRef(tasks);
@@ -115,10 +116,15 @@ export default function Layout() {
     return () => stopTaskReminders();
   }, [user, notifsEnabled, notifFrequency]);
 
+  const isAlarmRingingRef = useRef(isAlarmRinging);
+  isAlarmRingingRef.current = isAlarmRinging;
+
   useEffect(() => {
     if (!notifsEnabled || notifFrequency === "off" || countdown < 0) return;
 
     const timer = setInterval(() => {
+      if (isAlarmRingingRef.current) return;
+
       const targetTime = parseInt(localStorage.getItem("next_checkin_at") || "0");
       const now = Date.now();
 
@@ -126,11 +132,8 @@ export default function Layout() {
         const remaining = Math.max(0, Math.floor((targetTime - now) / 1000));
 
         if (remaining <= 0) {
-          // Timer expired, set next one
-          const freqSeconds = parseFreq(notifFrequency);
-          const nextTarget = Date.now() + (freqSeconds * 1000);
-          localStorage.setItem("next_checkin_at", nextTarget.toString());
-          setCountdown(freqSeconds);
+          setIsAlarmRinging(true);
+          setCountdown(0);
         } else {
           setCountdown(remaining);
         }
@@ -140,11 +143,61 @@ export default function Layout() {
     return () => clearInterval(timer);
   }, [notifsEnabled, notifFrequency]);
 
+  useEffect(() => {
+    let audioCtx = null;
+    let interval = null;
+    if (isAlarmRinging) {
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const playBeep = () => {
+          if (audioCtx.state === 'suspended') audioCtx.resume();
+          const oscillator = audioCtx.createOscillator();
+          const gainNode = audioCtx.createGain();
+          oscillator.connect(gainNode);
+          gainNode.connect(audioCtx.destination);
+
+          oscillator.type = 'square';
+          oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+          oscillator.frequency.setValueAtTime(600, audioCtx.currentTime + 0.2);
+
+          gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+
+          oscillator.start(audioCtx.currentTime);
+          oscillator.stop(audioCtx.currentTime + 0.5);
+        };
+        playBeep();
+        interval = setInterval(playBeep, 1000);
+      } catch (e) {
+        console.error("Audio error:", e);
+      }
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+      if (audioCtx) audioCtx.close().catch(() => { });
+    };
+  }, [isAlarmRinging]);
+
+  const dismissAlarm = () => {
+    setIsAlarmRinging(false);
+    const freqSeconds = parseFreq(notifFrequency);
+    if (freqSeconds > 0) {
+      const nextTarget = Date.now() + (freqSeconds * 1000);
+      localStorage.setItem("next_checkin_at", nextTarget.toString());
+      setCountdown(freqSeconds);
+    } else {
+      setCountdown(0);
+      localStorage.removeItem("next_checkin_at");
+    }
+  };
+
   const formatCountdown = (seconds) => {
-    if (seconds <= 0) return "";
-    const m = Math.floor(seconds / 60);
+    if (seconds <= 0) return "00:00";
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
     const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
+    if (h > 0) return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
   const toggleNotifs = async () => {
@@ -311,7 +364,7 @@ export default function Layout() {
           )}
 
           {/* Timer Display */}
-          {notifsEnabled && notifFrequency !== 'off' && countdown > 0 && !collapsed && (
+          {notifsEnabled && notifFrequency !== 'off' && (countdown > 0 || isAlarmRinging) && !collapsed && (
             <div className="mb-3 flex items-center gap-3 text-sm font-black text-cyan-400 dark:text-cyan-400 uppercase tracking-[0.15em] bg-cyan-500/10 p-3.5 rounded-2xl border border-cyan-500/20 shadow-[0_0_15px_rgba(34,211,238,0.1)] backdrop-blur-md">
               <Clock size={16} strokeWidth={3} className="text-cyan-500" />
               <span className="drop-shadow-sm">Next Check-in: {formatCountdown(countdown)}</span>
@@ -561,6 +614,38 @@ export default function Layout() {
           </div>
         </nav>
       </main>
+
+      {/* ─── Alarm Modal ────────────────────────────────────────── */}
+      {isAlarmRinging && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in text-slate-900">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[32px] p-8 text-center shadow-2xl shadow-violet-500/20 border border-slate-200 dark:border-slate-800 animate-slide-up transform scale-100 flex flex-col items-center">
+            <div className="w-24 h-24 bg-amber-500/10 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(245,158,11,0.3)] animate-pulse">
+              <Clock size={48} className="text-amber-500 animate-bounce" />
+            </div>
+            <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2 tracking-tight">Time's Up!</h2>
+            <p className="text-slate-500 dark:text-slate-400 font-medium mb-8">
+              Your check-in timer has finished. Time to review your tasks!
+            </p>
+            <div className="flex w-full gap-3">
+              <button
+                onClick={() => dismissAlarm()}
+                className="w-1/2 py-4 text-base font-black text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition-all"
+              >
+                Busy
+              </button>
+              <button
+                onClick={() => {
+                  dismissAlarm();
+                  navigate("/app/tasks");
+                }}
+                className="w-1/2 py-4 text-base font-black text-white bg-gradient-to-r from-violet-600 to-cyan-500 rounded-2xl shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 active:scale-95 transition-all"
+              >
+                Free
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ─── Mobile Sidebar Overlay ─────────────────────────────── */}
       {mobileMenuOpen && (
