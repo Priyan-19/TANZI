@@ -96,7 +96,7 @@ export async function setupForegroundMessageHandler(onNotification) {
  * Uses Service Worker if available to support actions and background clicks.
  */
 export async function showBrowserNotification(title, body, options = {}) {
-  if (Notification.permission !== "granted") return;
+  if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
 
   try {
     // 1. Try Service Worker Registration (Supports Actions on Mobile)
@@ -223,7 +223,7 @@ export function startTaskReminders(getTasksFn, intervalMs = 30 * 60 * 1000, getU
         : `You have ${pendingToday.length} tasks to complete today. Keep going!`;
 
     // Show browser notification
-    if (Notification.permission === "granted") {
+    if (typeof Notification !== "undefined" && Notification.permission === "granted") {
       const user = getUserFn ? getUserFn() : null;
       showBrowserNotification(title, body, {
         tag: "tanzi-task-reminder",
@@ -273,7 +273,7 @@ export function notifyPomodoroComplete(isBreak = false) {
     ? "Time to get back to work. Start your next focus session."
     : "Great work! Take a 5-minute break, then keep going.";
 
-  if (Notification.permission === "granted") {
+  if (typeof Notification !== "undefined" && Notification.permission === "granted") {
     showBrowserNotification(title, body, {
       tag: "tanzi-pomodoro",
       requireInteraction: true,

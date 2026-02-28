@@ -7,7 +7,11 @@ import {
   signOut,
   onAuthStateChanged,
   updateProfile,
+  signInWithCredential,
+  GoogleAuthProvider
 } from "firebase/auth";
+import { Capacitor } from '@capacitor/core';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { auth, googleProvider, db } from "../firebase/config";
 import toast from "react-hot-toast";
@@ -19,32 +23,57 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Basic init, Capacitor plugin reads from capacitor.config.json
+    GoogleAuth.initialize().catch(err => console.warn("GoogleAuth init error:", err));
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        // Fetch extra user data from Firestore
-        const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
-        setUser({ ...firebaseUser, ...userDoc.data() });
-      } else {
-        setUser(null);
+      try {
+        if (firebaseUser) {
+          console.log("Firebase Auth State: Logged In", firebaseUser.uid);
+          // Fetch extra user data from Firestore
+          const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+
+          // Merge only serializable fields to avoid prototype/getter issues with Firebase User object
+          const userData = userDoc.exists() ? userDoc.data() : {};
+          setUser({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName,
+            photoURL: firebaseUser.photoURL,
+            ...userData
+          });
+        } else {
+          console.log("Firebase Auth State: Logged Out");
+          setUser(null);
+        }
+      } catch (err) {
+        console.error("Error in onAuthStateChanged:", err);
+        toast.error("Error loading user profile");
+        setUser(firebaseUser || null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
     return unsubscribe;
   }, []);
 
   // Create or update user document in Firestore
   const createUserDoc = async (firebaseUser, name) => {
-    const userRef = doc(db, "users", firebaseUser.uid);
-    const snap = await getDoc(userRef);
-    if (!snap.exists()) {
-      await setDoc(userRef, {
-        name: name || firebaseUser.displayName || "User",
-        email: firebaseUser.email,
-        createdAt: serverTimestamp(),
-        fcmToken: null,
-        streakCount: 0,
-        lastActiveDate: null,
-      });
+    try {
+      const userRef = doc(db, "users", firebaseUser.uid);
+      const snap = await getDoc(userRef);
+      if (!snap.exists()) {
+        await setDoc(userRef, {
+          name: name || firebaseUser.displayName || "User",
+          email: firebaseUser.email,
+          createdAt: serverTimestamp(),
+          fcmToken: null,
+          streakCount: 0,
+          lastActiveDate: null,
+        });
+      }
+    } catch (err) {
+      console.error("Firestore createUserDoc Error:", err);
     }
   };
 
@@ -63,10 +92,45 @@ export function AuthProvider({ children }) {
   };
 
   const loginWithGoogle = async () => {
-    const result = await signInWithPopup(auth, googleProvider);
-    await createUserDoc(result.user);
-    toast.success("Signed in with Google!");
-    return result;
+    setLoading(true);
+    try {
+      let result;
+      if (Capacitor.isNativePlatform()) {
+        console.log("Starting Native Google Sign-In...");
+        const googleUser = await GoogleAuth.signIn();
+        console.log("Native Google Sign-In Success:", googleUser.email);
+
+        if (!googleUser.authentication.idToken) {
+          throw new Error("No ID Token returned from Google. Check your Client ID and SHA-1 configuration.");
+        }
+
+        const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
+        result = await signInWithCredential(auth, credential);
+        console.log("Firebase Native Sign-In Success:", result.user.uid);
+      } else {
+        console.log("Starting Web Google Sign-In...");
+        const provider = new GoogleAuthProvider();
+        result = await signInWithPopup(auth, provider);
+        console.log("Firebase Web Sign-In Success:", result.user.uid);
+      }
+
+      if (result && result.user) {
+        await createUserDoc(result.user);
+        toast.success("Signed in with Google!");
+      }
+      return result;
+    } catch (error) {
+      console.error("Google Web/Native Sign-In Error Details:", error);
+
+      let errorMsg = "Google Sign-In failed.";
+      if (error.message.includes("idToken")) errorMsg = "Connection error: No valid token from Google.";
+      if (error.code === "auth/unauthorized-domain") errorMsg = "This domain isn't authorized for sign-in.";
+
+      toast.error(errorMsg);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const logout = async () => {

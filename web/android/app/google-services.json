@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "693281183147",
+    "project_id": "task-analyzer-1",
+    "storage_bucket": "task-analyzer-1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:693281183147:android:5296a545b2de86f37feeee",
+        "android_client_info": {
+          "package_name": "com.priyan19.tanzi"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "693281183147-80ahl1rirafltgvnl73nimerumbspup8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.priyan19.tanzi",
+            "certificate_hash": "bcc5bf2747e26f1aa5215f6eb43b880520a838d5"
+          }
+        },
+        {
+          "client_id": "693281183147-9v3tlj9gfeiu0svbtld4lb44198tfu6h.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCTNoD70pP9eCw7lm6FjapVtWGEhKonw78"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "693281183147-2phpb1qovsbupu4u3h22d13baau2eu1j.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

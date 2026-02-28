@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <!-- Dark Background -->
+    <rect id="bg" width="1024" height="1024" fill="#020617"/>
+    
+    <!-- Gradient for Border -->
+    <linearGradient id="borderGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c026d3"/> <!-- Fuchsia/Purple -->
+      <stop offset="40%" stop-color="#9333ea"/> <!-- Violet -->
+      <stop offset="100%" stop-color="#06b6d4"/> <!-- Cyan -->
+    </linearGradient>
+  </defs>
+
+  <use href="#bg"/>
+
+  <!-- Rounded Square with Gradient Border -->
+  <rect x="112" y="112" width="800" height="800" rx="300" ry="300" 
+        fill="none" stroke="url(#borderGradient)" stroke-width="40"/>
+
+  <!-- Lightning Bolt (Centered) -->
+  <path d="M 580 280 L 350 560 H 510 L 480 740 L 710 460 H 550 L 580 280 Z" fill="#FFFFFF"/>
+</svg>

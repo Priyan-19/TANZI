@@ -1,6 +1,6 @@
 // src/firebase/config.js
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { GoogleAuthProvider, indexedDBLocalPersistence, initializeAuth } from "firebase/auth";
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 import { getMessaging, isSupported } from "firebase/messaging";
 
@@ -17,15 +17,15 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // Auth
-export const auth = getAuth(app);
+export const auth = initializeAuth(app, {
+  persistence: indexedDBLocalPersistence,
+});
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: "select_account" });
 
-// Firestore with persistent multi-tab cache (modern API, no deprecation warning)
+// Firestore with local persistence handled for mobile/web singleton
 export const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager(),
-  }),
+  localCache: persistentLocalCache(),
 });
 
 // FCM — lazy initialized, only in supported browsers

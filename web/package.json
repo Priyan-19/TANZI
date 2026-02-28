@@ -11,6 +11,10 @@
     "deploy": "npm run build && firebase deploy"
   },
   "dependencies": {
+    "@capacitor/android": "^8.1.0",
+    "@capacitor/core": "^8.1.0",
+    "@capacitor/push-notifications": "^8.0.1",
+    "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",
     "date-fns": "^3.3.1",
     "firebase": "^11.0.1",
     "lucide-react": "^0.316.0",
@@ -21,6 +25,8 @@
     "recharts": "^2.10.3"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.1.0",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
     "@vitejs/plugin-react": "^4.2.1",
