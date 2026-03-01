@@ -439,15 +439,15 @@ export default function Layout() {
                   ))}
                 </div>
 
-                {/* Row 2: Off */}
+                {/* Row 2: Turn Off / Turn On toggle */}
                 <button
-                  onClick={() => updateFrequency("off")}
+                  onClick={() => updateFrequency(notifFrequency === "off" ? "15m" : "off")}
                   className={`w-full py-2 rounded-xl text-[10px] font-bold uppercase tracking-tight transition-all
                     ${notifFrequency === "off"
                       ? "bg-amber-500 text-white shadow-md shadow-amber-500/20"
                       : "text-slate-500 bg-slate-100/50 dark:bg-slate-700/30 hover:bg-slate-200 dark:hover:bg-slate-700/50"}`}
                 >
-                  Turn Off
+                  {notifFrequency === "off" ? "Turn On" : "Turn Off"}
                 </button>
               </div>
 
