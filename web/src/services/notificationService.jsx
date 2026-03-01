@@ -6,6 +6,8 @@
 
 import toast from "react-hot-toast";
 import { Bell, X } from "lucide-react";
+import { Capacitor } from '@capacitor/core';
+import { PushNotifications } from '@capacitor/push-notifications';
 
 // ─── FCM-based notifications (optional, when Firebase Messaging is available) ─
 
@@ -15,6 +17,49 @@ import { Bell, X } from "lucide-react";
  */
 export async function requestNotificationPermission(userId) {
   try {
+    // ─── NATIVE PLATFORM (Android/iOS) ──────────────────────────────
+    if (Capacitor.isNativePlatform()) {
+      console.log("Initializing Native Push Notifications...");
+
+      let permStatus = await PushNotifications.checkPermissions();
+
+      if (permStatus.receive === 'prompt') {
+        permStatus = await PushNotifications.requestPermissions();
+      }
+
+      if (permStatus.receive !== 'granted') {
+        toast.error("Push permissions denied.");
+        return null;
+      }
+
+      await PushNotifications.register();
+
+      // Setup listeners if they haven't been set yet
+      PushNotifications.removeAllListeners();
+
+      return new Promise((resolve) => {
+        PushNotifications.addListener('registration', async (token) => {
+          console.log('Native Push Token:', token.value);
+          const { doc, updateDoc, db } = await import("../firebase/config");
+          await updateDoc(doc(db, "users", userId), { fcmToken: token.value });
+          toast.success("Native notifications enabled! 🔔");
+          resolve(token.value);
+        });
+
+        PushNotifications.addListener('registrationError', (error) => {
+          console.error('Registration error: ', error);
+          toast.error("Failed to register for push.");
+          resolve(null);
+        });
+
+        PushNotifications.addListener('pushNotificationReceived', (notification) => {
+          console.log('Push received (Native): ', notification);
+          showInAppNotification(notification.title, notification.body);
+        });
+      });
+    }
+
+    // ─── WEB PLATFORM ───────────────────────────────────────────────
     if (!("Notification" in window)) {
       console.warn("Browser does not support notifications");
       return null;
