@@ -40,7 +40,8 @@ export async function requestNotificationPermission(userId) {
       return new Promise((resolve) => {
         PushNotifications.addListener('registration', async (token) => {
           console.log('Native Push Token:', token.value);
-          const { doc, updateDoc, db } = await import("../firebase/config");
+          const { db } = await import("../firebase/config");
+          const { doc, updateDoc } = await import("firebase/firestore");
           await updateDoc(doc(db, "users", userId), { fcmToken: token.value });
           toast.success("Native notifications enabled! 🔔");
           resolve(token.value);
