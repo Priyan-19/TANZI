@@ -241,7 +241,7 @@ function TaskCard({ task, onComplete, onUncomplete, onEdit, onDelete }) {
         )}
         <div className="flex items-center gap-2 mt-2 flex-wrap">
           <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-600 uppercase tracking-tight">
-            {format(new Date(task.date), "MMM d")}
+            {format(new Date(task.date.replace(/-/g, '/')), "MMM d")}
           </span>
           <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider
             ${isCompleted ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-amber-500/10 text-amber-600 dark:text-amber-400"}`}>

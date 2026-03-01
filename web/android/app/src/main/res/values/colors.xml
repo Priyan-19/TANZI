@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#7c3aed</color> <!-- violet-600 -->
+    <color name="colorPrimaryDark">#6d28d9</color> <!-- violet-700 -->
+    <color name="colorAccent">#06b6d4</color>    <!-- cyan-500 -->
+    <color name="background">#020617</color>     <!-- slate-950 -->
+</resources>

@@ -2,12 +2,12 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import {
   collection, query, where, onSnapshot, addDoc, updateDoc,
-  deleteDoc, doc, serverTimestamp, orderBy, Timestamp,
+  deleteDoc, doc, serverTimestamp, orderBy, getDoc
 } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useAuth } from "./AuthContext";
 import { generateDailyReport } from "../services/analyticsService";
-import { getDoc } from "firebase/firestore";
+import { format, startOfWeek, endOfWeek, isWithinInterval, parseISO, startOfMonth, endOfMonth } from "date-fns";
 import toast from "react-hot-toast";
 
 const TaskContext = createContext(null);
@@ -99,8 +99,10 @@ export function TaskProvider({ children }) {
       const userSnap = await getDoc(userRef);
       const userData = userSnap.exists() ? userSnap.data() : {};
 
-      const today = new Date().toISOString().split("T")[0];
-      const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+      const today = format(new Date(), "yyyy-MM-dd");
+      const yesterdayDate = new Date();
+      yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+      const yesterday = format(yesterdayDate, "yyyy-MM-dd");
 
       let { streakCount = 0, lastActiveDate = null } = userData;
 
@@ -134,40 +136,40 @@ export function TaskProvider({ children }) {
       console.error(err);
       toast.error("Failed to complete task");
     }
-  }, [user]);
+  }, [user, updateStreak]);
 
   const uncompleteTask = useCallback(async (taskId) => {
     await updateDoc(doc(db, "tasks", taskId), {
       status: "pending",
       completedAt: null,
     });
-  }, []);
+  }, []); // ID-based update, no deps needed really, but user is good for sanity
 
   // ── Filtered Views ────────────────────────────────────────────────────────
 
   const getFilteredTasks = useCallback(() => {
-    const today = new Date();
-    const todayStr = today.toISOString().split("T")[0];
+    const now = new Date();
+    const todayStr = format(now, "yyyy-MM-dd");
 
     if (filter === "today") {
       return tasks.filter((t) => t.date === todayStr);
     }
 
     if (filter === "week") {
-      const start = new Date(today);
-      start.setDate(today.getDate() - today.getDay());
-      const end = new Date(start);
-      end.setDate(start.getDate() + 6);
+      const start = startOfWeek(now, { weekStartsOn: 1 });
+      const end = endOfWeek(now, { weekStartsOn: 1 });
       return tasks.filter((t) => {
-        const d = new Date(t.date);
-        return d >= start && d <= end;
+        const taskDate = parseISO(t.date);
+        return isWithinInterval(taskDate, { start, end });
       });
     }
 
     if (filter === "month") {
+      const start = startOfMonth(now);
+      const end = endOfMonth(now);
       return tasks.filter((t) => {
-        const d = new Date(t.date);
-        return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+        const taskDate = parseISO(t.date);
+        return isWithinInterval(taskDate, { start, end });
       });
     }
 
@@ -175,12 +177,12 @@ export function TaskProvider({ children }) {
   }, [tasks, filter]);
 
   const getTodayTasks = useCallback(() => {
-    const todayStr = new Date().toISOString().split("T")[0];
+    const todayStr = format(new Date(), "yyyy-MM-dd");
     return tasks.filter((t) => t.date === todayStr);
   }, [tasks]);
 
   const getPendingTasks = useCallback(() => {
-    const todayStr = new Date().toISOString().split("T")[0];
+    const todayStr = format(new Date(), "yyyy-MM-dd");
     return tasks.filter((t) => t.date === todayStr && t.status === "pending");
   }, [tasks]);
 

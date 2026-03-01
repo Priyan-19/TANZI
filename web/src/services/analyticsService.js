@@ -1,7 +1,7 @@
 // src/services/analyticsService.js
 import {
   collection, query, where, getDocs, setDoc, doc,
-  orderBy, limit, Timestamp,
+  orderBy, Timestamp,
 } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";

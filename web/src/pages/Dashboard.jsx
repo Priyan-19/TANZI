@@ -5,7 +5,7 @@ import { useTask } from "../context/TaskContext";
 import { generateDailyReport } from "../services/analyticsService";
 import {
   CheckCircle2, Clock, Target, TrendingUp, Plus, Calendar,
-  Zap, ChevronRight, MoreHorizontal, Flame,
+  Zap, ChevronRight, MoreHorizontal,
 } from "lucide-react";
 import { format } from "date-fns";
 import TaskModal from "../components/TaskModal";
@@ -91,7 +91,7 @@ function DashboardTaskRow({ task }) {
 export default function Dashboard() {
   const { user } = useAuth();
   const { getTodayTasks, getPendingTasks, loading } = useTask();
-  const [todayReport, setTodayReport] = useState(null);
+  const [, setTodayReport] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [showPomodoro, setShowPomodoro] = useState(false);
 

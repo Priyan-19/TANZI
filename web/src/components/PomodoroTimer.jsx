@@ -35,7 +35,10 @@ export default function PomodoroTimer({ className = "" }) {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const intervalRef = useRef(null);
   const modeRef = useRef(mode);
-  modeRef.current = mode;
+
+  useEffect(() => {
+    modeRef.current = mode;
+  }, [mode]);
 
   const handleComplete = useCallback(() => {
     const isFocus = modeRef.current === "focus";
@@ -109,7 +112,7 @@ export default function PomodoroTimer({ className = "" }) {
 
       {/* Mode Tabs */}
       <div className="flex gap-1 mb-5 p-1 bg-slate-100/50 dark:bg-slate-800/20 rounded-xl w-full">
-        {Object.entries(MODES).map(([key, val]) => (
+        {Object.entries(MODES).map(([key]) => (
           <button
             key={key}
             onClick={() => switchMode(key)}

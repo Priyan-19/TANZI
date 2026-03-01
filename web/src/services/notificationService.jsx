@@ -5,7 +5,7 @@
 // 3. In-app toast reminders for pending tasks
 
 import toast from "react-hot-toast";
-import { Bell, X, Clock } from "lucide-react";
+import { Bell, X } from "lucide-react";
 
 // ─── FCM-based notifications (optional, when Firebase Messaging is available) ─
 
@@ -20,7 +20,7 @@ export async function requestNotificationPermission(userId) {
       return null;
     }
 
-    const permission = await Notification.requestPermission();
+    const permission = await window.Notification.requestPermission();
     if (permission !== "granted") {
       toast.error("Notifications blocked. Enable them in browser settings.", { id: "notif-blocked" });
       console.warn("Notification permission denied");
@@ -96,7 +96,7 @@ export async function setupForegroundMessageHandler(onNotification) {
  * Uses Service Worker if available to support actions and background clicks.
  */
 export async function showBrowserNotification(title, body, options = {}) {
-  if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+  if (typeof window === "undefined" || !window.Notification || window.Notification?.permission !== "granted") return;
 
   try {
     // 1. Try Service Worker Registration (Supports Actions on Mobile)
@@ -118,7 +118,7 @@ export async function showBrowserNotification(title, body, options = {}) {
     }
 
     // 2. Fallback to default Notification API
-    const notification = new Notification(title, {
+    const notification = new window.Notification(title, {
       body,
       icon: "/favicon.svg",
       badge: "/favicon.svg",
@@ -223,7 +223,8 @@ export function startTaskReminders(getTasksFn, intervalMs = 30 * 60 * 1000, getU
         : `You have ${pendingToday.length} tasks to complete today. Keep going!`;
 
     // Show browser notification
-    if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+    const isGranted = (typeof window !== "undefined" && window.Notification?.permission === "granted");
+    if (isGranted) {
       const user = getUserFn ? getUserFn() : null;
       showBrowserNotification(title, body, {
         tag: "tanzi-task-reminder",
@@ -273,7 +274,8 @@ export function notifyPomodoroComplete(isBreak = false) {
     ? "Time to get back to work. Start your next focus session."
     : "Great work! Take a 5-minute break, then keep going.";
 
-  if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+  const isGranted = (typeof window !== "undefined" && window.Notification?.permission === "granted");
+  if (isGranted) {
     showBrowserNotification(title, body, {
       tag: "tanzi-pomodoro",
       requireInteraction: true,

@@ -1,5 +1,5 @@
 // src/pages/Login.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Zap, Mail, Lock, User, Eye, EyeOff, AlertCircle } from "lucide-react";
@@ -39,8 +39,16 @@ function getFriendlyError(codeOrMessage = "") {
 }
 
 export default function Login() {
-  const { login, register, loginWithGoogle } = useAuth();
+  const { user, login, register, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      navigate("/app");
+    }
+  }, [user, navigate]);
+
   const [isRegister, setIsRegister] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -57,7 +65,7 @@ export default function Login() {
       } else {
         await login(form.email, form.password);
       }
-      navigate("/app");
+      // No navigate("/app") here, useEffect handles it
     } catch (err) {
       const msg = getFriendlyError(err.code || err.message);
       if (msg) setError(msg);
@@ -71,7 +79,7 @@ export default function Login() {
     setLoading(true);
     try {
       await loginWithGoogle();
-      navigate("/app");
+      // handled by useEffect
     } catch (err) {
       const msg = getFriendlyError(err.code || err.message);
       if (msg) setError(msg);
