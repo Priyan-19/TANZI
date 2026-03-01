@@ -15,7 +15,14 @@ import {
   startTaskReminders,
   stopTaskReminders,
   setupForegroundMessageHandler,
+  showBrowserNotification,
+  dismissNotifications,
+  scheduleCheckInNotification,
+  initNativeNotifications,
+  parseFreq,
+  consumePendingAction,
 } from "../services/notificationService";
+import { Capacitor } from '@capacitor/core';
 
 const navItems = [
   { to: "/app", icon: LayoutDashboard, label: "Dashboard" },
@@ -49,18 +56,19 @@ export default function Layout() {
   const userRef = useRef(user);
   userRef.current = user;
 
-  const parseFreq = (f) => {
-    if (!f || f === "off") return 0;
-    if (typeof f === 'string') {
-      if (f.endsWith("m")) return parseInt(f) * 60;
-      if (f.endsWith("h")) return parseInt(f) * 3600;
-    }
-    const val = parseInt(f);
-    return isNaN(val) ? 0 : val * 60;
-  };
-
   // Sync notif status and settings on mount/user change
   useEffect(() => {
+    // Check for pending notification actions (app cold start)
+    const pending = consumePendingAction();
+    if (pending) {
+      console.log('Handling pending notification action on mount:', pending);
+      // We'll let the event listener handle it if it fires, 
+      // but manually trigger handleReset-style logic here for cold starts
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('checkinReset', { detail: { action: pending } }));
+      }, 500);
+    }
+
     if (typeof window !== "undefined" && window.Notification) {
       setNotifStatus(window.Notification.permission);
     }
@@ -99,7 +107,9 @@ export default function Layout() {
     setupForegroundMessageHandler(null);
     const freqSeconds = parseFreq(notifFrequency);
 
-    const isGranted = typeof window !== "undefined" && window.Notification?.permission === "granted";
+    const isGranted = Capacitor.isNativePlatform()
+      ? notifsEnabled
+      : (typeof window !== "undefined" && window.Notification?.permission === "granted");
     if (isGranted && freqSeconds > 0) {
       // Logic for persistent countdown
       const savedTarget = localStorage.getItem("next_checkin_at");
@@ -110,6 +120,9 @@ export default function Layout() {
         targetTime = now + (freqSeconds * 1000);
         localStorage.setItem("next_checkin_at", targetTime.toString());
       }
+
+      // Schedule native notification for background reliability (no-op on web)
+      scheduleCheckInNotification(targetTime);
 
       const initialRemaining = Math.max(0, Math.floor((targetTime - now) / 1000));
       setCountdown(initialRemaining);
@@ -135,8 +148,16 @@ export default function Layout() {
         const remaining = Math.max(0, Math.floor((targetTime - now) / 1000));
 
         if (remaining <= 0) {
-          setIsAlarmRinging(true);
-          setCountdown(0);
+          if (Capacitor.isNativePlatform()) {
+            // Already scheduled native notification should be visible now.
+            // We don't show the internal modal for Android as per user request.
+            setCountdown(0);
+          } else {
+            // Web: Show browser notification and internal modal
+            showBrowserNotification("Are You Free..?", "Your check-in timer has finished. Time to review your tasks!");
+            setIsAlarmRinging(true);
+            setCountdown(0);
+          }
         } else {
           setCountdown(remaining);
         }
@@ -183,16 +204,44 @@ export default function Layout() {
 
   const dismissAlarm = () => {
     setIsAlarmRinging(false);
+    dismissNotifications();
     const freqSeconds = parseFreq(notifFrequency);
     if (freqSeconds > 0) {
       const nextTarget = Date.now() + (freqSeconds * 1000);
       localStorage.setItem("next_checkin_at", nextTarget.toString());
+      scheduleCheckInNotification(nextTarget); // Schedule the next one immediately
       setCountdown(freqSeconds);
     } else {
       setCountdown(0);
       localStorage.removeItem("next_checkin_at");
     }
   };
+
+  useEffect(() => {
+    const handleReset = (e) => {
+      console.log('Resetting check-in via native notification listener:', e.detail.action);
+
+      // Stop alarm first
+      setIsAlarmRinging(false);
+      dismissNotifications();
+
+      const action = e.detail.action;
+      const freqSeconds = parseFreq(notifFrequency);
+
+      if (freqSeconds > 0) {
+        const nextTarget = Date.now() + (freqSeconds * 1000);
+        localStorage.setItem("next_checkin_at", nextTarget.toString());
+        scheduleCheckInNotification(nextTarget);
+        setCountdown(freqSeconds);
+      }
+
+      if (action === 'FREE') {
+        navigate("/app/tasks");
+      }
+    };
+    window.addEventListener('checkinReset', handleReset);
+    return () => window.removeEventListener('checkinReset', handleReset);
+  }, [notifFrequency]);
 
   const formatCountdown = (seconds) => {
     if (seconds <= 0) return "00:00";
@@ -712,145 +761,153 @@ export default function Layout() {
               </div>
             </div>
 
-            {/* Nav links */}
-            <div className="flex-1 px-3 py-3 space-y-1 overflow-y-auto">
-              {navItems.map(({ to, icon: Icon, label }) => (
-                <NavLink
-                  key={to}
-                  to={to}
-                  end={to === "/app"}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={({ isActive }) =>
-                    `flex items-center gap-4 p-4 rounded-2xl font-bold transition-all
+            {/* Scrollable body: nav + bottom actions */}
+            <div className="flex-1 overflow-y-auto flex flex-col">
+
+              {/* Nav links */}
+              <div className="px-3 py-3 space-y-1">
+                {navItems.map(({ to, icon: Icon, label }) => (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    end={to === "/app"}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center gap-4 p-4 rounded-2xl font-bold transition-all
                     ${isActive
-                      ? "bg-violet-600 text-white shadow-lg shadow-violet-600/20"
-                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                    }`
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      <Icon size={20} />
-                      <span>{label}</span>
-                      {label === "Tasks" && pendingCount > 0 && (
-                        <span className={`ml-auto text-[10px] font-black px-2 py-0.5 rounded-full ${isActive ? "bg-white/20 text-white" : "bg-amber-500 text-white"}`}>
-                          {pendingCount}
-                        </span>
-                      )}
-                    </>
-                  )}
-                </NavLink>
-              ))}
-            </div>
-
-            {/* Bottom actions */}
-            <div className="p-3 space-y-2 border-t border-slate-100 dark:border-slate-800 overflow-y-auto">
-
-              {/* Timer Display — mobile */}
-              {notifsEnabled && notifFrequency !== 'off' && (countdown > 0 || isAlarmRinging) && (
-                <div className="flex items-center gap-3 text-sm font-black text-cyan-400 uppercase tracking-[0.15em] bg-cyan-500/10 p-3.5 rounded-2xl border border-cyan-500/20 shadow-[0_0_15px_rgba(34,211,238,0.1)]">
-                  <Clock size={16} strokeWidth={3} className="text-cyan-500" />
-                  <span className="drop-shadow-sm">Next Check-in: {formatCountdown(countdown)}</span>
-                </div>
-              )}
-
-              {/* Notification Toggle Row — mobile */}
-              <div
-                onClick={() => {
-                  toggleNotifs();
-                  if (!notifsEnabled) setShowMobileFreqSelector(true);
-                }}
-                className={`flex items-center gap-4 w-full p-4 rounded-2xl font-bold transition-all cursor-pointer
-                  ${!notifsEnabled ? "text-red-500 bg-red-500/5 border border-red-500/20" : notifFrequency === 'off' ? "text-amber-500 bg-amber-500/5 border border-amber-500/20" : "text-emerald-500 bg-emerald-500/5 border border-emerald-500/20"}`}
-              >
-                <div className="relative flex-shrink-0">
-                  <Bell size={20} className={notifsEnabled ? (notifFrequency === 'off' ? "text-amber-500 fill-amber-500/20" : "text-emerald-500 fill-emerald-500/20") : "text-red-500 fill-red-500/20"} />
-                  {notifsEnabled && notifFrequency !== 'off' && <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full animate-ping" />}
-                  {notifsEnabled && notifFrequency === 'off' && <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full" />}
-                </div>
-                <div className="flex flex-col items-start flex-1 min-w-0">
-                  <span className="text-sm font-bold leading-tight">Notifications</span>
-                  <span className={`text-[10px] font-medium uppercase tracking-tighter ${!notifsEnabled ? "text-red-500/80" : notifFrequency === 'off' ? "text-amber-500/80" : "text-emerald-500/70"}`}>
-                    {!notifsEnabled ? "Disabled" : notifFrequency === 'off' ? 'Paused' : notifFrequency}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {notifsEnabled && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setShowMobileFreqSelector(!showMobileFreqSelector); }}
-                      className={`p-1.5 rounded-lg transition-colors ${notifFrequency === 'off' ? 'hover:bg-amber-500/20' : 'hover:bg-emerald-500/20'}`}
-                    >
-                      <Settings size={13} className={showMobileFreqSelector ? "rotate-90 transition-transform" : ""} />
-                    </button>
-                  )}
-                  <div className={`w-10 h-5 rounded-full relative transition-colors duration-300 ${!notifsEnabled ? "bg-red-500" : notifFrequency === 'off' ? "bg-amber-500" : "bg-emerald-500"}`}>
-                    <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300 ${notifsEnabled ? "left-[22px]" : "left-0.5"}`} />
-                  </div>
-                </div>
+                        ? "bg-violet-600 text-white shadow-lg shadow-violet-600/20"
+                        : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      }`
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        <Icon size={20} />
+                        <span>{label}</span>
+                        {label === "Tasks" && pendingCount > 0 && (
+                          <span className={`ml-auto text-[10px] font-black px-2 py-0.5 rounded-full ${isActive ? "bg-white/20 text-white" : "bg-amber-500 text-white"}`}>
+                            {pendingCount}
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </NavLink>
+                ))}
               </div>
 
-              {/* Frequency Selector — mobile */}
-              {notifsEnabled && showMobileFreqSelector && (
-                <div className="p-3 rounded-2xl bg-white/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 animate-slide-down">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-2.5">Check-in Frequency</p>
-                  <div className="space-y-1.5">
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {["15m", "30m", "1h"].map((f) => (
-                        <button
-                          key={f}
-                          onClick={() => updateFrequency(f)}
-                          className={`px-1 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-tight transition-all
-                            ${notifFrequency === f
-                              ? "bg-violet-600 text-white shadow-md shadow-violet-500/20"
-                              : "text-slate-500 bg-slate-100/50 dark:bg-slate-700/30 hover:bg-slate-200 dark:hover:bg-slate-700/50"}`}
-                        >
-                          {f}
-                        </button>
-                      ))}
-                    </div>
-                    <button
-                      onClick={() => updateFrequency(notifFrequency === "off" ? "15m" : "off")}
-                      className={`w-full py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-tight transition-all
-                        ${notifFrequency === "off"
-                          ? "bg-amber-500 text-white shadow-md shadow-amber-500/20"
-                          : "text-slate-500 bg-slate-100/50 dark:bg-slate-700/30 hover:bg-slate-200 dark:hover:bg-slate-700/50"}`}
-                    >
-                      {notifFrequency === "off" ? "Turn On" : "Turn Off"}
-                    </button>
-                    <div className="pt-2 border-t border-slate-100 dark:border-slate-700/50 flex gap-1.5">
-                      <input
-                        type="number"
-                        placeholder="MIN"
-                        value={customFreq}
-                        onChange={(e) => setCustomFreq(e.target.value)}
-                        className="flex-1 min-w-0 bg-slate-100/80 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-black text-slate-800 dark:text-white focus:outline-none focus:border-violet-500 transition-colors"
-                      />
+              {/* Bottom actions */}
+              <div className="p-3 space-y-2 border-t border-slate-100 dark:border-slate-800 mt-auto">
+
+                {/* Timer Display — mobile */}
+                {notifsEnabled && notifFrequency !== 'off' && (countdown >= 0 || isAlarmRinging) && (
+                  <div className={`flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] px-3.5 py-3 rounded-2xl border shadow-[0_0_15px_rgba(34,211,238,0.1)] transition-all duration-300
+                    ${countdown === 0 ? "text-amber-500 bg-amber-500/10 border-amber-500/20 shadow-amber-500/10" : "text-cyan-400 bg-cyan-500/10 border-cyan-500/20 shadow-cyan-500/10"}
+                  `}>
+                    <Clock size={14} strokeWidth={3} className={countdown === 0 ? "text-amber-500 animate-pulse" : "text-cyan-500 flex-shrink-0"} />
+                    <span className="drop-shadow-sm whitespace-nowrap">
+                      {countdown === 0 ? "Check-in Now!" : `Next Check-in: ${formatCountdown(countdown)}`}
+                    </span>
+                  </div>
+                )}
+
+                {/* Notification Toggle Row — mobile */}
+                <div
+                  onClick={() => {
+                    toggleNotifs();
+                    if (!notifsEnabled) setShowMobileFreqSelector(true);
+                  }}
+                  className={`flex items-center gap-4 w-full p-4 rounded-2xl font-bold transition-all cursor-pointer
+                  ${!notifsEnabled ? "text-red-500 bg-red-500/5 border border-red-500/20" : notifFrequency === 'off' ? "text-amber-500 bg-amber-500/5 border border-amber-500/20" : "text-emerald-500 bg-emerald-500/5 border border-emerald-500/20"}`}
+                >
+                  <div className="relative flex-shrink-0">
+                    <Bell size={20} className={notifsEnabled ? (notifFrequency === 'off' ? "text-amber-500 fill-amber-500/20" : "text-emerald-500 fill-emerald-500/20") : "text-red-500 fill-red-500/20"} />
+                    {notifsEnabled && notifFrequency !== 'off' && <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full animate-ping" />}
+                    {notifsEnabled && notifFrequency === 'off' && <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full" />}
+                  </div>
+                  <div className="flex flex-col items-start flex-1 min-w-0">
+                    <span className="text-sm font-bold leading-tight">Notifications</span>
+                    <span className={`text-[10px] font-medium uppercase tracking-tighter ${!notifsEnabled ? "text-red-500/80" : notifFrequency === 'off' ? "text-amber-500/80" : "text-emerald-500/70"}`}>
+                      {!notifsEnabled ? "Disabled" : notifFrequency === 'off' ? 'Paused' : notifFrequency}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {notifsEnabled && (
                       <button
-                        onClick={() => { if (customFreq) { updateFrequency(`${customFreq}m`); setCustomFreq(""); } }}
-                        className="px-4 bg-violet-600 text-white text-[10px] font-black uppercase rounded-xl shadow-lg shadow-violet-500/25 active:scale-95 transition-all"
+                        onClick={(e) => { e.stopPropagation(); setShowMobileFreqSelector(!showMobileFreqSelector); }}
+                        className={`p-1.5 rounded-lg transition-colors ${notifFrequency === 'off' ? 'hover:bg-amber-500/20' : 'hover:bg-emerald-500/20'}`}
                       >
-                        Set
+                        <Settings size={13} className={showMobileFreqSelector ? "rotate-90 transition-transform" : ""} />
                       </button>
+                    )}
+                    <div className={`w-10 h-5 rounded-full relative transition-colors duration-300 ${!notifsEnabled ? "bg-red-500" : notifFrequency === 'off' ? "bg-amber-500" : "bg-emerald-500"}`}>
+                      <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300 ${notifsEnabled ? "left-[22px]" : "left-0.5"}`} />
                     </div>
                   </div>
                 </div>
-              )}
 
-              <button
-                onClick={toggle}
-                className="flex items-center gap-4 w-full p-4 rounded-2xl font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
-              >
-                {isDark ? <Sun size={20} /> : <Moon size={20} />}
-                {isDark ? "Light Mode" : "Dark Mode"}
-              </button>
+                {/* Frequency Selector — mobile */}
+                {notifsEnabled && showMobileFreqSelector && (
+                  <div className="p-3 rounded-2xl bg-white/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 animate-slide-down">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-2.5">Check-in Frequency</p>
+                    <div className="space-y-1.5">
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {["15m", "30m", "1h"].map((f) => (
+                          <button
+                            key={f}
+                            onClick={() => updateFrequency(f)}
+                            className={`px-1 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-tight transition-all
+                            ${notifFrequency === f
+                                ? "bg-violet-600 text-white shadow-md shadow-violet-500/20"
+                                : "text-slate-500 bg-slate-100/50 dark:bg-slate-700/30 hover:bg-slate-200 dark:hover:bg-slate-700/50"}`}
+                          >
+                            {f}
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        onClick={() => updateFrequency(notifFrequency === "off" ? "15m" : "off")}
+                        className={`w-full py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-tight transition-all
+                        ${notifFrequency === "off"
+                            ? "bg-amber-500 text-white shadow-md shadow-amber-500/20"
+                            : "text-slate-500 bg-slate-100/50 dark:bg-slate-700/30 hover:bg-slate-200 dark:hover:bg-slate-700/50"}`}
+                      >
+                        {notifFrequency === "off" ? "Turn On" : "Turn Off"}
+                      </button>
+                      <div className="pt-2 border-t border-slate-100 dark:border-slate-700/50 flex gap-1.5">
+                        <input
+                          type="number"
+                          placeholder="MIN"
+                          value={customFreq}
+                          onChange={(e) => setCustomFreq(e.target.value)}
+                          className="flex-1 min-w-0 bg-slate-100/80 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-black text-slate-800 dark:text-white focus:outline-none focus:border-violet-500 transition-colors"
+                        />
+                        <button
+                          onClick={() => { if (customFreq) { updateFrequency(`${customFreq}m`); setCustomFreq(""); } }}
+                          className="px-4 bg-violet-600 text-white text-[10px] font-black uppercase rounded-xl shadow-lg shadow-violet-500/25 active:scale-95 transition-all"
+                        >
+                          Set
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-4 w-full p-4 rounded-2xl font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
-              >
-                <LogOut size={20} />
-                Sign Out
-              </button>
+                <button
+                  onClick={toggle}
+                  className="flex items-center gap-4 w-full p-4 rounded-2xl font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+                >
+                  {isDark ? <Sun size={20} /> : <Moon size={20} />}
+                  {isDark ? "Light Mode" : "Dark Mode"}
+                </button>
+
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-4 w-full p-4 rounded-2xl font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
+                >
+                  <LogOut size={20} />
+                  Sign Out
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -8,6 +8,67 @@ import toast from "react-hot-toast";
 import { Bell, X } from "lucide-react";
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
+import { LocalNotifications } from '@capacitor/local-notifications';
+
+let pendingAction = null;
+
+/**
+ * Get and clear the pending notification action if any.
+ */
+export function consumePendingAction() {
+  const action = pendingAction;
+  pendingAction = null;
+  return action;
+}
+
+/**
+ * Initialize native notification listeners once on app start.
+ */
+export async function initNativeNotifications() {
+  if (!Capacitor.isNativePlatform()) return;
+
+  try {
+    // Setup Native Local Notification Action Listeners
+    await LocalNotifications.removeAllListeners();
+    await LocalNotifications.addListener('localNotificationActionPerformed', (result) => {
+      console.log('Local Notification Action Performed:', result);
+
+      const action = result.actionId;
+      if (['FREE', 'BUSY'].includes(action) || action === 'tap') {
+        pendingAction = action;
+        window.dispatchEvent(new CustomEvent('checkinReset', { detail: { action } }));
+      }
+
+      window.focus();
+    });
+
+    // Register Action Types (Free/Busy buttons)
+    await LocalNotifications.registerActionTypes({
+      types: [
+        {
+          id: 'CHECKIN_ACTIONS',
+          actions: [
+            { id: 'FREE', title: ' FREE ', foreground: true },
+            { id: 'BUSY', title: ' BUSY ', foreground: true }
+          ]
+        }
+      ]
+    });
+
+    console.log("Native listeners initialized");
+  } catch (err) {
+    console.error("Failed to init native listeners:", err);
+  }
+}
+
+export const parseFreq = (f) => {
+  if (!f || f === "off") return 0;
+  const str = String(f).toLowerCase();
+  if (str.endsWith("m")) return parseInt(str) * 60;
+  if (str.endsWith("h")) return parseInt(str) * 3600;
+  const val = parseInt(str);
+  return isNaN(val) ? 0 : val * 60;
+};
 
 // ─── FCM-based notifications (optional, when Firebase Messaging is available) ─
 
@@ -21,23 +82,35 @@ export async function requestNotificationPermission(userId) {
     if (Capacitor.isNativePlatform()) {
       console.log("Initializing Native Push Notifications...");
 
-      let permStatus = await PushNotifications.checkPermissions();
+      // Request permissions for both Push and Local notifications
+      const pushPerms = await PushNotifications.requestPermissions();
+      const localPerms = await LocalNotifications.requestPermissions();
 
-      if (permStatus.receive === 'prompt') {
-        permStatus = await PushNotifications.requestPermissions();
+      if (pushPerms.receive !== 'granted' && localPerms.display !== 'granted') {
+        toast.error("Notification permissions denied.");
+        return null;
       }
 
-      if (permStatus.receive !== 'granted') {
-        toast.error("Push permissions denied.");
-        return null;
+      // Create a default channel for Android (required for local notifications)
+      try {
+        await LocalNotifications.createChannel({
+          id: 'tanzi_default_channel',
+          name: 'Default Notifications',
+          description: 'Default notifications for TANZI reminders',
+          importance: 5,
+          visibility: 1,
+          sound: 'beep.wav', // optional
+          vibration: true,
+        });
+      } catch (err) {
+        console.warn("Failed to create native notification channel:", err);
       }
 
       await PushNotifications.register();
 
-      // Setup listeners if they haven't been set yet
-      PushNotifications.removeAllListeners();
-
       return new Promise((resolve) => {
+        PushNotifications.removeAllListeners();
+
         PushNotifications.addListener('registration', async (token) => {
           console.log('Native Push Token:', token.value);
           const { db } = await import("../firebase/config");
@@ -142,6 +215,29 @@ export async function setupForegroundMessageHandler(onNotification) {
  * Uses Service Worker if available to support actions and background clicks.
  */
 export async function showBrowserNotification(title, body, options = {}) {
+  // ─── NATIVE PLATFORM (Android/iOS) ──────────────────────────────
+  if (Capacitor.isNativePlatform()) {
+    try {
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            title,
+            body,
+            id: Math.floor(Math.random() * 1000000),
+            schedule: { at: new Date(Date.now() + 100) },
+            extra: options.data || {},
+            smallIcon: 'ic_stat_tanzi',
+            channelId: 'tanzi_default_channel',
+          }
+        ]
+      });
+      return;
+    } catch (err) {
+      console.error("Native local notification error:", err);
+    }
+  }
+
+  // ─── WEB PLATFORM ───────────────────────────────────────────────
   if (typeof window === "undefined" || !window.Notification || window.Notification?.permission !== "granted") return;
 
   try {
@@ -297,6 +393,86 @@ export function startTaskReminders(getTasksFn, intervalMs = 30 * 60 * 1000, getU
 
   console.log(`Task reminders started (every ${intervalMs / 60000} min)`);
   return reminderInterval;
+}
+
+/**
+ * Dismiss any active notifications (native/sw) and cancel pending ones.
+ */
+export async function dismissNotifications() {
+  if (Capacitor.isNativePlatform()) {
+    try {
+      // Clear delivered notifications from bar
+      await LocalNotifications.removeAllDeliveredNotifications();
+      // Cancel pending scheduled notifications (like future check-ins)
+      const { notifications } = await LocalNotifications.getPending();
+      if (notifications.length > 0) {
+        await LocalNotifications.cancel({ notifications });
+      }
+    } catch (err) {
+      console.warn("Failed to clear native notifications:", err);
+    }
+  }
+
+  // Web SW path
+  if ("serviceWorker" in navigator) {
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      if (registration) {
+        const notifs = await registration.getNotifications();
+        notifs.forEach(n => n.close());
+      }
+    } catch (err) {
+      console.warn("Failed to clear SW notifications:", err);
+    }
+  }
+}
+
+/**
+ * Schedule a native local notification for a future check-in.
+ * This ensures it shows up in the notification bar even if the app is backgrounded.
+ */
+export async function scheduleCheckInNotification(targetTimeMs) {
+  if (!Capacitor.isNativePlatform()) return;
+
+  try {
+    const NOTIF_ID = 999;
+
+    // Ensure channel exists
+    await LocalNotifications.createChannel({
+      id: "tanzi_default_channel",
+      name: "Default Notifications",
+      description: "Default notifications for reminders",
+      importance: 5,
+      visibility: 1,
+      vibration: true,
+    }).catch(() => { });
+
+    // First cancel any existing one for this ID
+    await LocalNotifications.cancel({
+      notifications: [{ id: NOTIF_ID }]
+    });
+
+    if (targetTimeMs <= Date.now()) return;
+
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          title: "Are You Free..?",
+          body: "Your check-in timer has finished. Time to review your tasks!",
+          id: NOTIF_ID,
+          schedule: { at: new Date(targetTimeMs) },
+          smallIcon: 'ic_stat_tanzi',
+          largeIcon: 'ic_stat_tanzi', // Help make it more prominent
+          channelId: 'tanzi_default_channel',
+          actionTypeId: 'CHECKIN_ACTIONS',
+          allowWhileIdle: true,
+        }
+      ]
+    });
+    console.log("Check-in notification scheduled for:", new Date(targetTimeMs).toLocaleTimeString());
+  } catch (err) {
+    console.error("Error scheduling check-in notification:", err);
+  }
 }
 
 /**
