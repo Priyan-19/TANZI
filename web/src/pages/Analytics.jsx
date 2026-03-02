@@ -18,7 +18,10 @@ const COLORS = {
   line: "#06b6d4",
 };
 
-function ChartCard({ title, children, icon: Icon }) {
+import React, { useMemo } from "react";
+
+// ─── Chart Card (Memoized) ──────────────────────────────────────────────────
+const ChartCard = React.memo(({ title, children, icon: Icon }) => {
   return (
     <div className="relative overflow-hidden backdrop-blur-xl bg-white/85 dark:bg-slate-900/40 border border-slate-300/80 dark:border-slate-800/40 rounded-[1.5rem] md:rounded-[2rem] p-4 md:p-6 shadow-xl shadow-slate-300/20 dark:shadow-black/20 transition-all duration-300">
       <div className="flex items-center justify-between mb-4 md:mb-6">
@@ -36,21 +39,22 @@ function ChartCard({ title, children, icon: Icon }) {
       {children}
     </div>
   );
-}
+});
 
-const CustomTooltip = ({ active, payload, label }) => {
+// ─── Custom Tooltip (Memoized) ──────────────────────────────────────────────
+const CustomTooltip = React.memo(({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 shadow-xl text-xs">
       <p className="text-slate-800 dark:text-slate-300 font-bold mb-1">{label}</p>
-      {payload.map((p) => (
-        <p key={p.name} style={{ color: p.color }} className="font-medium">
+      {payload.map((p, idx) => (
+        <p key={idx} style={{ color: p.color }} className="font-medium">
           {p.name}: <span className="font-bold">{p.value}{p.name === "rate" ? "%" : ""}</span>
         </p>
       ))}
     </div>
   );
-};
+});
 
 export default function Analytics() {
   const { user } = useAuth();
@@ -59,12 +63,23 @@ export default function Analytics() {
   const [monthData, setMonthData] = useState([]);
   const [score, setScore] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
   const [view, setView] = useState("week");
 
   useEffect(() => {
     if (!user) return;
     const fetchData = async () => {
       setLoading(true);
+
+      // 1. Run automated checks (Silent)
+      try {
+        const { checkAndGenerateAutomatedReports } = await import("../services/analyticsService");
+        await checkAndGenerateAutomatedReports(user.uid);
+      } catch (err) {
+        console.warn("Auto-report check failed:", err);
+      }
+
+      // 2. Fetch data for charts
       const [week, month, prod] = await Promise.all([
         getWeeklyAnalytics(user.uid),
         getMonthlyAnalytics(user.uid),
@@ -78,19 +93,55 @@ export default function Analytics() {
     fetchData();
   }, [user, tasks.length]);
 
+  const handleManualGenerate = async () => {
+    if (!user || generating) return;
+    try {
+      setGenerating(true);
+      const { generateDailyReport, generateWeeklyReport, generateMonthlyReport } = await import("../services/analyticsService");
+
+      // Silently generate for this period
+      await Promise.all([
+        generateDailyReport(user.uid, new Date()),
+        generateWeeklyReport(user.uid, new Date()),
+        generateMonthlyReport(user.uid, new Date())
+      ]);
+
+      // Refresh chart data
+      const [week, month, prod] = await Promise.all([
+        getWeeklyAnalytics(user.uid),
+        getMonthlyAnalytics(user.uid),
+        calculateProductivityScore(user.uid),
+      ]);
+      setWeekData(week);
+      setMonthData(month);
+      setScore(prod);
+    } catch (err) {
+      console.error("Manual generation failed:", err);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const currentData = view === "week" ? weekData : monthData;
 
-  const totalCompleted = tasks.filter((t) => t.status === "completed").length;
-  const totalPending = tasks.filter((t) => t.status === "pending").length;
-  const pieData = [
-    { name: "Completed", value: totalCompleted },
-    { name: "Pending", value: totalPending },
-  ];
 
-  const avgCompletion =
-    currentData.length > 0
+  const { pieData, avgCompletion, totalCompleted, totalPending } = useMemo(() => {
+    const completed = tasks.filter((t) => t.status === "completed").length;
+    const pending = tasks.filter((t) => t.status === "pending").length;
+    const avg = currentData.length > 0
       ? Math.round(currentData.reduce((s, d) => s + (d.completionRate || 0), 0) / currentData.length)
       : 0;
+
+    return {
+      totalCompleted: completed,
+      totalPending: pending,
+      pieData: [
+        { name: "Completed", value: completed },
+        { name: "Pending", value: pending },
+      ],
+      avgCompletion: avg
+    };
+  }, [tasks, currentData]);
 
   if (loading) {
     return (
@@ -128,22 +179,38 @@ export default function Analytics() {
           <p className="text-slate-500 dark:text-slate-400 text-[10px] md:text-xs font-bold uppercase tracking-widest mt-1">Operational efficiency metrics</p>
         </div>
 
-        {/* Period toggle */}
-        <div className="flex gap-1 p-1.5 self-start sm:self-auto bg-white/85 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-300/80 dark:border-slate-800/40 rounded-2xl shadow-md dark:shadow-black/10">
-          {["week", "month"].map((v) => (
-            <button
-              key={v}
-              onClick={() => setView(v)}
-              className={`px-4 md:px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all
-                ${view === v
-                  ? "bg-violet-600 text-white shadow-lg shadow-violet-500/30"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
-                }`}
-            >
-              {v === "week" ? "7 Days" : "30 Days"}
-            </button>
-          ))}
+        {/* Actions */}
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <button
+            onClick={handleManualGenerate}
+            disabled={generating}
+            className={`px-4 md:px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all shadow-lg active:scale-95
+              ${generating
+                ? "bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed"
+                : "bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:scale-[1.02]"}`}
+          >
+            <BarChart3 size={14} className={generating ? "animate-spin" : ""} />
+            {generating ? "Updating..." : "Generate"}
+          </button>
+
+          {/* Period toggle */}
+          <div className="flex gap-1 p-1 bg-white/85 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-300/80 dark:border-slate-800/40 rounded-2xl shadow-md">
+            {["week", "month"].map((v) => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                className={`px-4 md:px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all
+                  ${view === v
+                    ? "bg-violet-600 text-white shadow-lg shadow-violet-500/30"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                  }`}
+              >
+                {v === "week" ? "Weekly" : "Monthly"}
+              </button>
+            ))}
+          </div>
         </div>
+
       </div>
 
       {/* ─── Score Cards ─── */}

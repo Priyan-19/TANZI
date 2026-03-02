@@ -48,8 +48,8 @@ export async function initNativeNotifications() {
         {
           id: 'CHECKIN_ACTIONS',
           actions: [
-            { id: 'FREE', title: ' FREE ', foreground: true },
-            { id: 'BUSY', title: ' BUSY ', foreground: true }
+            { id: 'FREE', title: 'FREE', foreground: true },
+            { id: 'BUSY', title: 'BUSY', foreground: true }
           ]
         }
       ]
@@ -116,7 +116,6 @@ export async function requestNotificationPermission(userId) {
           const { db } = await import("../firebase/config");
           const { doc, updateDoc } = await import("firebase/firestore");
           await updateDoc(doc(db, "users", userId), { fcmToken: token.value });
-          toast.success("Native notifications enabled! 🔔");
           resolve(token.value);
         });
 
@@ -163,7 +162,6 @@ export async function requestNotificationPermission(userId) {
         if (token) {
           await updateDoc(doc(db, "users", userId), { fcmToken: token });
           console.log("FCM Token saved:", token);
-          toast.success("Push notifications enabled! 🔔");
           return token;
         }
       }
@@ -172,7 +170,6 @@ export async function requestNotificationPermission(userId) {
     }
 
     // Fallback: Browser Notification API is now permitted
-    toast.success("Notifications enabled! 🔔");
     return "browser-notification";
   } catch (err) {
     console.error("Failed to setup notifications:", err);
@@ -373,8 +370,8 @@ export function startTaskReminders(getTasksFn, intervalMs = 30 * 60 * 1000, getU
         requireInteraction: true,
         data: { userId: user?.uid, type: "SMART_REACH_OUT" },
         actions: [
-          { action: "FREE", title: "✅ I'M FREE" },
-          { action: "BUSY", title: "⏳ BUSY" }
+          { action: "FREE", title: "I'M FREE" },
+          { action: "BUSY", title: "BUSY" }
         ],
         onClick: () => window.focus(),
       });
@@ -428,14 +425,16 @@ export async function dismissNotifications() {
 }
 
 /**
- * Schedule a native local notification for a future check-in.
- * This ensures it shows up in the notification bar even if the app is backgrounded.
+ * Schedule a batch of native local notifications for future check-ins.
+ * This ensures notifications continue to trigger even if the app is 
+ * completely closed (killed) by the OS.
  */
-export async function scheduleCheckInNotification(targetTimeMs) {
-  if (!Capacitor.isNativePlatform()) return;
+export async function scheduleCheckInBatch(firstTargetMs, intervalSeconds) {
+  if (!Capacitor.isNativePlatform() || intervalSeconds <= 0) return;
 
   try {
-    const NOTIF_ID = 999;
+    const START_ID = 900;
+    const BATCH_SIZE = 20; // Schedule next 20 check-ins
 
     // Ensure channel exists
     await LocalNotifications.createChannel({
@@ -447,31 +446,44 @@ export async function scheduleCheckInNotification(targetTimeMs) {
       vibration: true,
     }).catch(() => { });
 
-    // First cancel any existing one for this ID
-    await LocalNotifications.cancel({
-      notifications: [{ id: NOTIF_ID }]
-    });
+    // Cancel any previous batch
+    const pending = await LocalNotifications.getPending();
+    const idsToCancel = pending.notifications
+      .map(n => n.id)
+      .filter(id => id >= START_ID && id < START_ID + BATCH_SIZE);
 
-    if (targetTimeMs <= Date.now()) return;
+    if (idsToCancel.length > 0) {
+      await LocalNotifications.cancel({ notifications: idsToCancel.map(id => ({ id })) });
+    }
 
-    await LocalNotifications.schedule({
-      notifications: [
-        {
-          title: "Are You Free..?",
-          body: "Your check-in timer has finished. Time to review your tasks!",
-          id: NOTIF_ID,
-          schedule: { at: new Date(targetTimeMs) },
+    const notifications = [];
+    let nextTime = firstTargetMs;
+
+    for (let i = 0; i < BATCH_SIZE; i++) {
+      const trace_time = new Date(nextTime);
+      if (nextTime > Date.now()) {
+        const timeStr = trace_time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        notifications.push({
+          title: `Are You Free..? ⏰`,
+          //body: `Click 'I'M FREE' to review your tasks or 'BUSY' to snooze.`,
+          id: START_ID + i,
+          schedule: { at: trace_time },
           smallIcon: 'ic_stat_tanzi',
-          largeIcon: 'ic_stat_tanzi', // Help make it more prominent
+          largeIcon: 'ic_stat_tanzi',
           channelId: 'tanzi_default_channel',
           actionTypeId: 'CHECKIN_ACTIONS',
           allowWhileIdle: true,
-        }
-      ]
-    });
-    console.log("Check-in notification scheduled for:", new Date(targetTimeMs).toLocaleTimeString());
+        });
+      }
+      nextTime += (intervalSeconds * 1000);
+    }
+
+    if (notifications.length > 0) {
+      await LocalNotifications.schedule({ notifications });
+      console.log(`Scheduled ${notifications.length} check-ins starting at ${new Date(firstTargetMs).toLocaleTimeString()}`);
+    }
   } catch (err) {
-    console.error("Error scheduling check-in notification:", err);
+    console.error("Error scheduling check-in batch:", err);
   }
 }
 
@@ -505,4 +517,19 @@ export function notifyPomodoroComplete(isBreak = false) {
   }
 
   showInAppNotification(title, body, { duration: 8000, id: "pomodoro-done" });
+}
+/**
+ * Notify the user when an analytics report is generated.
+ * APPLICABLE ONLY FOR MOBILE APP.
+ */
+export function notifyReportGenerated(type) {
+  if (!Capacitor.isNativePlatform()) return;
+
+  const title = `${type} Report Ready 📊`;
+  const body = `Your ${type.toLowerCase()} productivity analytics are now available.`;
+
+  showBrowserNotification(title, body, {
+    tag: `tanzi-report-${type.toLowerCase()}`,
+    requireInteraction: true,
+  });
 }

@@ -11,9 +11,10 @@ import { format } from "date-fns";
 import TaskModal from "../components/TaskModal";
 import PomodoroTimer from "../components/PomodoroTimer";
 import { Link } from "react-router-dom";
+import React, { useMemo } from "react";
 
-// ─── Stat Card ──────────────────────────────────────────────────────────────
-function StatCard({ label, value, icon: Icon, color, sub, trend }) {
+// ─── Stat Card (Memoized) ────────────────────────────────────────────────────
+const StatCard = React.memo(({ label, value, icon: Icon, color, sub, trend }) => {
   return (
     <div className="relative overflow-hidden backdrop-blur-md bg-white/85 dark:bg-slate-900/50 border border-slate-300/60 dark:border-slate-800/40 rounded-[1.5rem] p-4 md:p-6 transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98] hover:shadow-xl hover:shadow-violet-500/10 group cursor-default shadow-sm shadow-slate-300/30">
       <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-violet-500/10 to-transparent rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500 pointer-events-none" />
@@ -42,10 +43,10 @@ function StatCard({ label, value, icon: Icon, color, sub, trend }) {
       </div>
     </div>
   );
-}
+});
 
-// ─── Task Row ───────────────────────────────────────────────────────────────
-function DashboardTaskRow({ task }) {
+// ─── Task Row (Memoized) ─────────────────────────────────────────────────────
+const DashboardTaskRow = React.memo(({ task }) => {
   const { completeTask, uncompleteTask } = useTask();
   const isCompleted = task.status === "completed";
 
@@ -69,7 +70,7 @@ function DashboardTaskRow({ task }) {
       </button>
 
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-bold truncate transition-colors ${isCompleted ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-800 dark:text-slate-200 group-hover:text-violet-600 dark:group-hover:text-violet-400"}`}>
+        <p className={`text-sm font-bold truncate transition-all ${isCompleted ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-800 dark:text-slate-200 group-hover:text-violet-600 dark:group-hover:text-violet-400"}`}>
           {task.title}
         </p>
         {task.description && (
@@ -85,7 +86,7 @@ function DashboardTaskRow({ task }) {
       </div>
     </div>
   );
-}
+});
 
 // ─── Main Dashboard ──────────────────────────────────────────────────────────
 export default function Dashboard() {
@@ -97,11 +98,21 @@ export default function Dashboard() {
 
   const todayTasks = getTodayTasks();
   const pendingTasks = getPendingTasks();
-  const completedToday = todayTasks.filter((t) => t.status === "completed").length;
-  const completionRate =
-    todayTasks.length > 0
-      ? Math.round((completedToday / todayTasks.length) * 100)
-      : 0;
+
+  const stats = useMemo(() => {
+    const completed = todayTasks.filter((t) => t.status === "completed").length;
+    return {
+      completed,
+      pending: pendingTasks.length,
+      completionRate: todayTasks.length > 0 ? Math.round((completed / todayTasks.length) * 100) : 0
+    };
+  }, [todayTasks, pendingTasks.length]);
+
+  const { completedToday, pendingCount, completionRate } = {
+    completedToday: stats.completed,
+    pendingCount: stats.pending,
+    completionRate: stats.completionRate
+  };
 
   useEffect(() => {
     if (user && todayTasks.length > 0) {
@@ -217,7 +228,7 @@ export default function Dashboard() {
           <div className="flex justify-between mt-3">
             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Start</span>
             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-              {completionRate >= 100 ? "✓ MISSION SUCCESS" : "IN PROGRESS"}
+              {completionRate >= 100 ? "MISSION SUCCESS" : "IN PROGRESS"}
             </span>
             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest italic">Tanzi v1.0</span>
           </div>

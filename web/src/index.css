@@ -238,12 +238,11 @@ a,
 }
 
 /* Smooth transitions for theme switching */
-*,
-*::before,
-*::after {
-  transition-property: background-color, border-color, color, opacity;
-  transition-duration: 0.15s;
-  transition-timing-function: ease;
+/* Specific transitions instead of global * to improve performance */
+.transition-colors {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
 }
 
 /* Override transition for transforms (should be fast) */

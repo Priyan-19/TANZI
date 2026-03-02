@@ -17,7 +17,7 @@ import {
   setupForegroundMessageHandler,
   showBrowserNotification,
   dismissNotifications,
-  scheduleCheckInNotification,
+  scheduleCheckInBatch,
   initNativeNotifications,
   parseFreq,
   consumePendingAction,
@@ -58,7 +58,10 @@ export default function Layout() {
 
   // Sync notif status and settings on mount/user change
   useEffect(() => {
-    // Check for pending notification actions (app cold start)
+    // 1. Initialize Native Activity Listeners (essential for Action buttons to work)
+    initNativeNotifications();
+
+    // 2. Check for pending notification actions (app cold start)
     const pending = consumePendingAction();
     if (pending) {
       console.log('Handling pending notification action on mount:', pending);
@@ -121,13 +124,16 @@ export default function Layout() {
         localStorage.setItem("next_checkin_at", targetTime.toString());
       }
 
-      // Schedule native notification for background reliability (no-op on web)
-      scheduleCheckInNotification(targetTime);
+      // Schedule native notification batch for background/killed reliability (no-op on web)
+      scheduleCheckInBatch(targetTime, freqSeconds);
 
       const initialRemaining = Math.max(0, Math.floor((targetTime - now) / 1000));
       setCountdown(initialRemaining);
 
-      startTaskReminders(() => tasksRef.current, freqSeconds * 1000, () => userRef.current);
+      // Only run periodic background scanners on WEB to avoid duplication on Mobile
+      if (!Capacitor.isNativePlatform()) {
+        startTaskReminders(() => tasksRef.current, freqSeconds * 1000, () => userRef.current);
+      }
     }
     return () => stopTaskReminders();
   }, [user, notifsEnabled, notifFrequency]);
@@ -209,7 +215,7 @@ export default function Layout() {
     if (freqSeconds > 0) {
       const nextTarget = Date.now() + (freqSeconds * 1000);
       localStorage.setItem("next_checkin_at", nextTarget.toString());
-      scheduleCheckInNotification(nextTarget); // Schedule the next one immediately
+      scheduleCheckInBatch(nextTarget, freqSeconds); // Schedule the next one immediately
       setCountdown(freqSeconds);
     } else {
       setCountdown(0);
@@ -231,7 +237,7 @@ export default function Layout() {
       if (freqSeconds > 0) {
         const nextTarget = Date.now() + (freqSeconds * 1000);
         localStorage.setItem("next_checkin_at", nextTarget.toString());
-        scheduleCheckInNotification(nextTarget);
+        scheduleCheckInBatch(nextTarget, freqSeconds);
         setCountdown(freqSeconds);
       }
 
@@ -344,7 +350,7 @@ export default function Layout() {
   ).length;
 
   return (
-    <div className="flex h-screen h-dvh bg-slate-50 text-slate-900 dark:bg-[#020617] dark:text-slate-100 overflow-hidden transition-colors duration-500 font-sans selection:bg-violet-500/30">
+    <div className="flex h-dvh bg-slate-50 text-slate-900 dark:bg-[#020617] dark:text-slate-100 overflow-hidden transition-colors duration-500 font-sans selection:bg-violet-500/30">
 
       {/* ─── Desktop Sidebar ─────────────────────────────────────── */}
       <aside

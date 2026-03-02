@@ -43,7 +43,6 @@ export function TaskProvider({ children }) {
       },
       (error) => {
         console.error("Task listener error:", error);
-        toast.error("Failed to sync tasks");
         setLoading(false);
       }
     );
@@ -65,30 +64,24 @@ export function TaskProvider({ children }) {
         createdAt: serverTimestamp(),
         completedAt: null,
       });
-      toast.success("Task added!");
     } catch (err) {
       console.error(err);
-      toast.error("Failed to add task");
     }
   }, [user]);
 
   const updateTask = useCallback(async (taskId, updates) => {
     try {
       await updateDoc(doc(db, "tasks", taskId), updates);
-      toast.success("Task updated!");
     } catch (err) {
       console.error(err);
-      toast.error("Failed to update task");
     }
   }, []);
 
   const deleteTask = useCallback(async (taskId) => {
     try {
       await deleteDoc(doc(db, "tasks", taskId));
-      toast.success("Task deleted");
     } catch (err) {
       console.error(err);
-      toast.error("Failed to delete task");
     }
   }, []);
 
@@ -127,14 +120,11 @@ export function TaskProvider({ children }) {
         status: "completed",
         completedAt: serverTimestamp(),
       });
-      toast.success("Task completed! 🎉");
-
       // Migrated from Cloud Functions to Client-side
       await updateStreak();
       await generateDailyReport(user.uid, new Date());
     } catch (err) {
       console.error(err);
-      toast.error("Failed to complete task");
     }
   }, [user, updateStreak]);
 

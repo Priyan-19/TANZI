@@ -61,6 +61,113 @@ export async function fetchReportsForRange(userId, startDate, endDate) {
 }
 
 /**
+ * Generate or update a weekly report
+ */
+export async function generateWeeklyReport(userId, date = new Date()) {
+  const start = startOfWeek(date, { weekStartsOn: 1 });
+  const end = endOfWeek(date, { weekStartsOn: 1 });
+  const dateStr = format(start, "yyyy-MM-dd");
+
+  const reports = await fetchReportsForRange(userId, start, end);
+
+  const totalTasks = reports.reduce((s, r) => s + r.totalTasks, 0);
+  const completedTasks = reports.reduce((s, r) => s + r.completedTasks, 0);
+  const pendingTasks = totalTasks - completedTasks;
+  const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+  const reportId = `${userId}_W_${dateStr}`;
+  await setDoc(doc(db, "weeklyReports", reportId), {
+    userId,
+    weekStart: dateStr,
+    totalTasks,
+    completedTasks,
+    pendingTasks,
+    completionRate,
+    updatedAt: Timestamp.now(),
+  });
+
+  return { totalTasks, completedTasks, pendingTasks, completionRate };
+}
+
+/**
+ * Generate or update a monthly report
+ */
+export async function generateMonthlyReport(userId, date = new Date()) {
+  const start = startOfMonth(date);
+  const end = endOfMonth(date);
+  const dateStr = format(start, "yyyy-MM-dd");
+
+  const reports = await fetchReportsForRange(userId, start, end);
+
+  const totalTasks = reports.reduce((s, r) => s + r.totalTasks, 0);
+  const completedTasks = reports.reduce((s, r) => s + r.completedTasks, 0);
+  const pendingTasks = totalTasks - completedTasks;
+  const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+  const reportId = `${userId}_M_${dateStr}`;
+  await setDoc(doc(db, "monthlyReports", reportId), {
+    userId,
+    monthStart: dateStr,
+    totalTasks,
+    completedTasks,
+    pendingTasks,
+    completionRate,
+    updatedAt: Timestamp.now(),
+  });
+
+  return { totalTasks, completedTasks, pendingTasks, completionRate };
+}
+
+/**
+ * Automated report checker: checks if reports need generation based on schedule.
+ * Call this on app load or analytics view.
+ */
+export async function checkAndGenerateAutomatedReports(userId) {
+  if (!userId) return;
+
+  const now = new Date();
+  const todayStr = format(now, "yyyy-MM-dd");
+  const hour = now.getHours();
+
+  const lastDaily = localStorage.getItem(`last_daily_gen_${userId}`);
+  const lastWeekly = localStorage.getItem(`last_weekly_gen_${userId}`);
+  const lastMonthly = localStorage.getItem(`last_monthly_gen_${userId}`);
+
+  const results = { daily: false, weekly: false, monthly: false };
+
+  // 1. Daily Report (8:00 AM)
+  if (hour >= 8 && lastDaily !== todayStr) {
+    // Generate report for YESTERDAY
+    const yesterday = new Date();
+    yesterday.setDate(now.getDate() - 1);
+    await generateDailyReport(userId, yesterday);
+    localStorage.setItem(`last_daily_gen_${userId}`, todayStr);
+    results.daily = true;
+  }
+
+  // 2. Weekly Report (Sunday Morning)
+  const isSunday = now.getDay() === 0;
+  const weekKey = format(startOfWeek(now, { weekStartsOn: 1 }), "yyyy-ww");
+  if (isSunday && hour >= 6 && lastWeekly !== weekKey) {
+    await generateWeeklyReport(userId, now);
+    localStorage.setItem(`last_weekly_gen_${userId}`, weekKey);
+    results.weekly = true;
+  }
+
+  // 3. Monthly Report (Last day of month, morning)
+  const lastDay = endOfMonth(now).getDate();
+  const isLastDay = now.getDate() === lastDay;
+  const monthKey = format(now, "yyyy-MM");
+  if (isLastDay && hour >= 6 && lastMonthly !== monthKey) {
+    await generateMonthlyReport(userId, now);
+    localStorage.setItem(`last_monthly_gen_${userId}`, monthKey);
+    results.monthly = true;
+  }
+
+  return results;
+}
+
+/**
  * Get weekly analytics data (last 7 days)
  */
 export async function getWeeklyAnalytics(userId, date = new Date()) {
@@ -122,3 +229,4 @@ export async function calculateProductivityScore(userId) {
   const avgCompletion = weekData.reduce((sum, d) => sum + d.completionRate, 0) / 7;
   return Math.round(avgCompletion);
 }
+

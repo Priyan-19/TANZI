@@ -27,35 +27,32 @@ export function AuthProvider({ children }) {
     GoogleAuth.initialize().catch(err => console.warn("GoogleAuth init error:", err));
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      try {
-        if (firebaseUser) {
-          console.log("Firebase Auth State: Logged In", firebaseUser.uid);
-          // Fetch extra user data from Firestore
-          let userData = {};
-          try {
-            const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
-            userData = userDoc.exists() ? userDoc.data() : {};
-          } catch (docErr) {
-            console.warn("Firestore user doc fetch failed:", docErr.message);
-          }
+      if (firebaseUser) {
+        // 1. Resolve basic info immediately so app can mount
+        setUser({
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: firebaseUser.displayName || "User",
+          photoURL: firebaseUser.photoURL,
+        });
+        setLoading(false);
 
-          // Merge only serializable fields to avoid prototype/getter issues with Firebase User object
-          setUser({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
-            displayName: firebaseUser.displayName || userData.name || "User",
-            photoURL: firebaseUser.photoURL,
-            ...userData
-          });
-        } else {
-          console.log("Firebase Auth State: Logged Out");
-          setUser(null);
+        // 2. Fetch extra profile data in background
+        try {
+          const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setUser(prev => ({
+              ...prev,
+              ...userData,
+              displayName: prev.displayName === "User" ? (userData.name || prev.displayName) : prev.displayName
+            }));
+          }
+        } catch (docErr) {
+          console.warn("Background user doc fetch failed:", docErr.message);
         }
-      } catch (err) {
-        console.error("Error in onAuthStateChanged:", err);
-        toast.error("Error loading user profile");
-        setUser(firebaseUser || null);
-      } finally {
+      } else {
+        setUser(null);
         setLoading(false);
       }
     });
@@ -91,7 +88,6 @@ export function AuthProvider({ children }) {
       photoURL: result.user.photoURL
     };
     setUser(cleanUser); // Immediate clean state update
-    toast.success("Welcome back!");
     return result;
   };
 
@@ -106,7 +102,6 @@ export function AuthProvider({ children }) {
       photoURL: result.user.photoURL
     };
     setUser(cleanUser); // Immediate clean state update
-    toast.success("Account created!");
     return result;
   };
 
@@ -144,17 +139,12 @@ export function AuthProvider({ children }) {
         };
         setUser(cleanUser);
         await createUserDoc(result.user);
-        toast.success("Signed in with Google!");
       }
       return result;
     } catch (error) {
       console.error("Google Web/Native Sign-In Error Details:", error);
 
-      let errorMsg = "Google Sign-In failed.";
-      if (error.message.includes("idToken")) errorMsg = "Connection error: No valid token from Google.";
-      if (error.code === "auth/unauthorized-domain") errorMsg = "This domain isn't authorized for sign-in.";
-
-      toast.error(errorMsg);
+      // Error logged previously
       throw error;
     } finally {
       setLoading(false);
@@ -163,7 +153,6 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     await signOut(auth);
-    toast.success("Logged out successfully");
   };
 
   return (

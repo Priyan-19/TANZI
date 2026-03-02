@@ -3,14 +3,24 @@ import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { TaskProvider } from "./context/TaskContext";
 import { ThemeProvider } from "./context/ThemeContext";
-import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
-import Tasks from "./pages/Tasks";
-import Analytics from "./pages/Analytics";
-import Layout from "./layouts/Layout";
+import Landing from "./pages/Landing";
+
 import { Toaster } from "react-hot-toast";
 
-import Landing from "./pages/Landing";
+// Lazy load heavy components to speed up initial paint
+const Login = React.lazy(() => import("./pages/Login"));
+const Dashboard = React.lazy(() => import("./pages/Dashboard"));
+const Tasks = React.lazy(() => import("./pages/Tasks"));
+const Analytics = React.lazy(() => import("./pages/Analytics"));
+const Layout = React.lazy(() => import("./layouts/Layout"));
+
+// Shared loading state
+const LoadingScreen = () => (
+  <div className="flex flex-col items-center justify-center h-dvh bg-slate-950">
+    <div className="spinner mb-4" />
+    <span className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] animate-pulse">Initializing Engine</span>
+  </div>
+);
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -26,7 +36,7 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col items-center justify-center h-screen bg-slate-950 p-6 text-center">
+        <div className="flex flex-col items-center justify-center h-dvh bg-slate-950 p-6 text-center">
           <h1 className="text-2xl font-black text-white mb-4 italic uppercase">MISSION CRITICAL ERROR</h1>
           <p className="text-red-400 text-sm mb-8 font-mono max-w-lg break-words">{this.state.error?.message || "Unknown error"}</p>
           <button
@@ -44,8 +54,19 @@ class ErrorBoundary extends React.Component {
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
-  if (loading) return <div className="flex items-center justify-center h-screen bg-slate-950"><div className="spinner" /></div>;
+  if (loading) return <LoadingScreen />;
   return user ? children : <Navigate to="/login" />;
+}
+
+/**
+ * Root redirection logic:
+ * - If logged in: Go to Dashboard
+ * - If guest: Show Landing page
+ */
+function RootRedirect() {
+  const { user, loading } = useAuth();
+  if (loading) return <LoadingScreen />;
+  return user ? <Navigate to="/app" replace /> : <Landing />;
 }
 
 export default function App() {
@@ -54,26 +75,28 @@ export default function App() {
       <ThemeProvider>
         <AuthProvider>
           <TaskProvider>
-            <HashRouter>
-              <Toaster position="top-right" toastOptions={{
-                style: { background: '#1e293b', color: '#f8fafc', border: '1px solid #334155' }
-              }} />
-              <Routes>
-                {/* Public Routes */}
-                <Route path="/" element={<Landing />} />
-                <Route path="/login" element={<Login />} />
+            <React.Suspense fallback={<LoadingScreen />}>
+              <HashRouter>
+                <Toaster position="top-right" toastOptions={{
+                  style: { background: '#1e293b', color: '#f8fafc', border: '1px solid #334155' }
+                }} />
+                <Routes>
+                  {/* Public Routes */}
+                  <Route path="/" element={<RootRedirect />} />
+                  <Route path="/login" element={<Login />} />
 
-                {/* Private Routes */}
-                <Route path="/app" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-                  <Route index element={<Dashboard />} />
-                  <Route path="tasks" element={<Tasks />} />
-                  <Route path="analytics" element={<Analytics />} />
-                </Route>
+                  {/* Private Routes */}
+                  <Route path="/app" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+                    <Route index element={<Dashboard />} />
+                    <Route path="tasks" element={<Tasks />} />
+                    <Route path="analytics" element={<Analytics />} />
+                  </Route>
 
-                {/* Catch-all */}
-                <Route path="*" element={<Navigate to="/" />} />
-              </Routes>
-            </HashRouter>
+                  {/* Catch-all */}
+                  <Route path="*" element={<Navigate to="/" />} />
+                </Routes>
+              </HashRouter>
+            </React.Suspense>
           </TaskProvider>
         </AuthProvider>
       </ThemeProvider>
