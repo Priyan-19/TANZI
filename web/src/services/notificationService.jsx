@@ -465,7 +465,7 @@ export async function scheduleCheckInBatch(firstTargetMs, intervalSeconds) {
         const timeStr = trace_time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         notifications.push({
           title: `Are You Free..? ⏰`,
-          //body: `Click 'I'M FREE' to review your tasks or 'BUSY' to snooze.`,
+          body: `Check Out Your Tasks`,
           id: START_ID + i,
           schedule: { at: trace_time },
           smallIcon: 'ic_stat_tanzi',
