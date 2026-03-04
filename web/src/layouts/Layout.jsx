@@ -571,7 +571,7 @@ export default function Layout() {
 
       {/* ─── Alarm Modal ────────────────────────────────────────── */}
       {isAlarmRinging && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+        <div className="md:hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
           <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[32px] p-8 text-center shadow-2xl shadow-violet-500/20 border border-slate-200 dark:border-slate-800 animate-slide-up transform scale-100 flex flex-col items-center">
             <div className="w-24 h-24 bg-amber-500/10 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(245,158,11,0.3)] animate-pulse">
               <Clock size={48} className="text-amber-500 animate-bounce" />
@@ -695,6 +695,29 @@ export default function Layout() {
                         </button>
                       ))}
                     </div>
+
+                    {/* Custom Input Integrated */}
+                    <div className="flex gap-2 mb-3">
+                      <input
+                        type="number"
+                        placeholder="MIN"
+                        value={customFreq}
+                        onChange={(e) => setCustomFreq(e.target.value)}
+                        className="flex-1 min-w-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-xs font-black text-slate-800 dark:text-white focus:outline-none focus:border-violet-500/50 transition-colors"
+                      />
+                      <button
+                        onClick={() => {
+                          if (customFreq) {
+                            updateFrequency(`${customFreq}m`);
+                            setCustomFreq("");
+                          }
+                        }}
+                        className="px-6 bg-violet-600 text-white text-[10px] font-black uppercase rounded-2xl shadow-lg shadow-violet-500/25 active:scale-95 transition-all tracking-widest"
+                      >
+                        Set
+                      </button>
+                    </div>
+
                     <button
                       onClick={() => updateFrequency(notifFrequency === "off" ? "15m" : "off")}
                       className={`w-full py-3.5 rounded-2xl text-[11px] font-black uppercase transition-all active:scale-95 border
