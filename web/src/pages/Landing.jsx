@@ -1,7 +1,7 @@
 // src/pages/Landing.jsx
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
     Zap, BarChart3, Clock,
     ArrowRight, Target, Activity, Award,

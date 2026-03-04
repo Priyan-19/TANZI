@@ -1,5 +1,5 @@
 // src/pages/Analytics.jsx
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useTask } from "../context/TaskContext";
 import {
@@ -17,8 +17,6 @@ const COLORS = {
   rate: "#8b5cf6",
   line: "#06b6d4",
 };
-
-import React, { useMemo } from "react";
 
 // ─── Chart Card (Memoized) ──────────────────────────────────────────────────
 const ChartCard = React.memo(({ title, children, icon: Icon }) => {

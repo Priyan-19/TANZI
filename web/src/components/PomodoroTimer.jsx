@@ -1,5 +1,5 @@
 // src/components/PomodoroTimer.jsx
-import { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Play, Pause, RotateCcw, Coffee, SkipForward, Volume2, VolumeX } from "lucide-react";
 import { notifyPomodoroComplete } from "../services/notificationService";
 
@@ -106,7 +106,7 @@ export default function PomodoroTimer({ className = "" }) {
   const gradId = `pomodoro-grad-${mode}`;
 
   return (
-    <div className={`relative overflow-hidden backdrop-blur-xl bg-white/80 dark:bg-slate-900/40 border border-slate-300/80 dark:border-slate-800/40 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-6 shadow-xl shadow-slate-300/20 dark:shadow-black/20 transition-all duration-300 ${className}`}>
+    <div className={`relative overflow-hidden md:backdrop-blur-xl bg-white/80 dark:bg-slate-900/40 border border-slate-300/80 dark:border-slate-800/40 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-6 shadow-xl shadow-slate-300/20 dark:shadow-black/20 transition-all duration-300 ${className}`}>
       {/* Ambient glow */}
       <div className="absolute top-0 right-0 w-40 h-40 bg-violet-600/5 blur-[80px] pointer-events-none" />
 

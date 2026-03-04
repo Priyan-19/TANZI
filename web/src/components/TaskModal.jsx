@@ -1,5 +1,5 @@
 // src/components/TaskModal.jsx
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useTask } from "../context/TaskContext";
 import { X, Calendar, FileText, Type } from "lucide-react";
 import { format } from "date-fns";

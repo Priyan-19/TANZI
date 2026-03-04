@@ -1,5 +1,5 @@
 // src/context/TaskContext.jsx
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
 import {
   collection, query, where, onSnapshot, addDoc, updateDoc,
   deleteDoc, doc, serverTimestamp, orderBy, getDoc
@@ -135,9 +135,9 @@ export function TaskProvider({ children }) {
     });
   }, []); // ID-based update, no deps needed really, but user is good for sanity
 
-  // ── Filtered Views ────────────────────────────────────────────────────────
+  // ── Filtered Views (Memoized) ───────────────────────────────────────────
 
-  const getFilteredTasks = useCallback(() => {
+  const filteredTasks = useMemo(() => {
     const now = new Date();
     const todayStr = format(now, "yyyy-MM-dd");
 
@@ -166,12 +166,12 @@ export function TaskProvider({ children }) {
     return tasks;
   }, [tasks, filter]);
 
-  const getTodayTasks = useCallback(() => {
+  const todayTasks = useMemo(() => {
     const todayStr = format(new Date(), "yyyy-MM-dd");
     return tasks.filter((t) => t.date === todayStr);
   }, [tasks]);
 
-  const getPendingTasks = useCallback(() => {
+  const pendingTasks = useMemo(() => {
     const todayStr = format(new Date(), "yyyy-MM-dd");
     return tasks.filter((t) => t.date === todayStr && t.status === "pending");
   }, [tasks]);
@@ -187,9 +187,9 @@ export function TaskProvider({ children }) {
       deleteTask,
       completeTask,
       uncompleteTask,
-      getFilteredTasks,
-      getTodayTasks,
-      getPendingTasks,
+      getFilteredTasks: () => filteredTasks,
+      getTodayTasks: () => todayTasks,
+      getPendingTasks: () => pendingTasks,
     }}>
       {children}
     </TaskContext.Provider>

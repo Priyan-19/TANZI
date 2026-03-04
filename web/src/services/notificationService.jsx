@@ -4,6 +4,7 @@
 // 2. Browser Notification API fallback
 // 3. In-app toast reminders for pending tasks
 
+import React from "react";
 import toast from "react-hot-toast";
 import { Bell, X } from "lucide-react";
 import { Capacitor } from '@capacitor/core';

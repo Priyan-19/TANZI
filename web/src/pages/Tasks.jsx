@@ -1,5 +1,5 @@
 // src/pages/Tasks.jsx
-import { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useTask } from "../context/TaskContext";
 import { Plus, Search, CheckCircle2, Trash2, Edit3, Clock, X } from "lucide-react";
 import TaskModal from "../components/TaskModal";
@@ -10,203 +10,6 @@ const FILTERS = [
   { key: "week", label: "This Week" },
   { key: "month", label: "Month" },
 ];
-
-export default function Tasks() {
-  const { getFilteredTasks, filter, setFilter, loading, completeTask, uncompleteTask, deleteTask } = useTask();
-  const [search, setSearch] = useState("");
-  const [showModal, setShowModal] = useState(false);
-  const [editTask, setEditTask] = useState(null);
-  const [statusFilter, setStatusFilter] = useState("all");
-
-  const tasks = getFilteredTasks().filter((t) => {
-    const matchesSearch =
-      t.title.toLowerCase().includes(search.toLowerCase()) ||
-      t.description?.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" || t.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
-
-  const pending = tasks.filter((t) => t.status === "pending");
-  const completed = tasks.filter((t) => t.status === "completed");
-
-  const handleEdit = (task) => {
-    setEditTask(task);
-    setShowModal(true);
-  };
-
-  const handleDelete = async (taskId) => {
-    if (window.confirm("Delete this task?")) {
-      await deleteTask(taskId);
-    }
-  };
-
-  return (
-    <div className="max-w-4xl mx-auto space-y-4 md:space-y-6">
-
-      {/* ─── Header ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pt-1 md:pt-2">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <div className="px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-violet-600 dark:text-violet-400">
-              LOGISTICS
-            </div>
-            <div className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Inventory</span>
-          </div>
-          <h1 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, fontStyle: 'italic', letterSpacing: '-0.04em', lineHeight: 1, paddingBottom: '4px', overflow: 'visible' }} className="text-3xl md:text-4xl text-slate-900 dark:text-slate-100">
-            Objective <span className="text-violet-600">Archive</span>
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-[11px] font-bold uppercase tracking-widest mt-1">{tasks.length} entries registered</p>
-        </div>
-        <button
-          onClick={() => { setEditTask(null); setShowModal(true); }}
-          className="self-start sm:self-auto flex items-center gap-2 px-5 md:px-7 py-2.5 md:py-3 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[11px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-slate-900/20 dark:shadow-white/10"
-        >
-          <Plus size={16} strokeWidth={3} />
-          <span>New Entry</span>
-        </button>
-      </div>
-
-      {/* ─── Search Bar ─── */}
-      <div className="relative">
-        <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600 pointer-events-none" />
-        <input
-          type="text"
-          placeholder="Search tasks..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full bg-white/85 dark:bg-slate-900/40 backdrop-blur-md md:backdrop-blur-xl border border-slate-300/80 dark:border-slate-800/40 rounded-2xl py-3 pl-11 pr-10 text-sm font-medium text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-violet-500/50 transition-all shadow-lg shadow-slate-300/20 dark:shadow-black/10"
-        />
-        {search && (
-          <button
-            onClick={() => setSearch("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-          >
-            <X size={14} />
-          </button>
-        )}
-      </div>
-
-      {/* ─── Filter Pills ─── */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        {/* Date filter */}
-        <div className="flex gap-1 p-1.5 bg-white/85 dark:bg-slate-900/40 backdrop-blur-md md:backdrop-blur-xl border border-slate-300/80 dark:border-slate-800/40 rounded-2xl shadow-md dark:shadow-black/10 overflow-x-auto no-scrollbar">
-          {FILTERS.map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setFilter(key)}
-              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap
-                ${filter === key
-                  ? "bg-violet-600 text-white shadow-lg shadow-violet-500/30"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
-                }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {/* Status filter */}
-        <div className="flex gap-1 p-1.5 bg-white/85 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-300/80 dark:border-slate-800/40 rounded-2xl shadow-md dark:shadow-black/10">
-          {[
-            { key: "all", label: "All" },
-            { key: "pending", label: "Pending" },
-            { key: "completed", label: "Done" },
-          ].map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setStatusFilter(key)}
-              className={`flex-1 sm:flex-none px-3 md:px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all
-                ${statusFilter === key
-                  ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm"
-                  : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-300"
-                }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ─── Task List ─── */}
-      {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-20 rounded-2xl animate-shimmer" />
-          ))}
-        </div>
-      ) : tasks.length === 0 ? (
-        <div className="text-center py-14 md:py-20 bg-white/60 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800/50 rounded-[1.5rem] md:rounded-[2rem] shadow-sm">
-          <Clock size={28} className="mx-auto text-slate-300 dark:text-slate-700 mb-3" />
-          <p className="text-slate-600 dark:text-slate-400 font-semibold text-sm">No tasks found</p>
-          <p className="text-slate-400 dark:text-slate-600 text-xs mt-1">Try a different filter or add a new task</p>
-          {search && (
-            <button
-              onClick={() => setSearch("")}
-              className="mt-4 text-xs text-violet-500 hover:text-violet-400 font-semibold transition-colors"
-            >
-              Clear search
-            </button>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {/* Pending */}
-          {(statusFilter === "all" || statusFilter === "pending") && pending.length > 0 && (
-            <>
-              {statusFilter === "all" && (
-                <p className="text-[10px] font-black text-amber-500 uppercase tracking-wider px-1 pt-2 pb-1">
-                  Pending ({pending.length})
-                </p>
-              )}
-              {pending.map((task) => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  onComplete={completeTask}
-                  onUncomplete={uncompleteTask}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                />
-              ))}
-            </>
-          )}
-
-          {/* Completed */}
-          {(statusFilter === "all" || statusFilter === "completed") && completed.length > 0 && (
-            <>
-              {statusFilter === "all" && (
-                <p className="text-[10px] font-black text-emerald-500 uppercase tracking-wider px-1 pt-4 pb-1">
-                  Completed ({completed.length})
-                </p>
-              )}
-              {completed.map((task) => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  onComplete={completeTask}
-                  onUncomplete={uncompleteTask}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                />
-              ))}
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Spacer for mobile nav */}
-      <div className="h-2 md:h-0" />
-
-      {showModal && (
-        <TaskModal
-          task={editTask}
-          onClose={() => { setShowModal(false); setEditTask(null); }}
-        />
-      )}
-    </div>
-  );
-}
 
 const TaskCard = React.memo(({ task, onComplete, onUncomplete, onEdit, onDelete }) => {
   const isCompleted = task.status === "completed";
@@ -293,3 +96,205 @@ const TaskCard = React.memo(({ task, onComplete, onUncomplete, onEdit, onDelete 
     </div>
   );
 });
+
+export default function Tasks() {
+  const { getFilteredTasks, filter, setFilter, loading, completeTask, uncompleteTask, deleteTask } = useTask();
+  const [search, setSearch] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [editTask, setEditTask] = useState(null);
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const { pending, completed, totalCount } = useMemo(() => {
+    const rawTasks = getFilteredTasks().filter((t) => {
+      const matchesSearch =
+        t.title.toLowerCase().includes(search.toLowerCase()) ||
+        t.description?.toLowerCase().includes(search.toLowerCase());
+      const matchesStatus = statusFilter === "all" || t.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+
+    return {
+      pending: rawTasks.filter((t) => t.status === "pending"),
+      completed: rawTasks.filter((t) => t.status === "completed"),
+      totalCount: rawTasks.length
+    };
+  }, [getFilteredTasks, search, statusFilter]);
+
+  const handleEdit = (task) => {
+    setEditTask(task);
+    setShowModal(true);
+  };
+
+  const handleDelete = async (taskId) => {
+    if (window.confirm("Delete this task?")) {
+      await deleteTask(taskId);
+    }
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-4 md:space-y-6">
+
+      {/* ─── Header ─── */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pt-1 md:pt-2">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <div className="px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-violet-600 dark:text-violet-400">
+              LOGISTICS
+            </div>
+            <div className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Inventory</span>
+          </div>
+          <h1 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, fontStyle: 'italic', letterSpacing: '-0.04em', lineHeight: 1, paddingBottom: '4px', overflow: 'visible' }} className="text-3xl md:text-4xl text-slate-900 dark:text-slate-100">
+            Objective <span className="text-violet-600">Archive</span>
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 text-[11px] font-bold uppercase tracking-widest mt-1">{totalCount} entries registered</p>
+        </div>
+        <button
+          onClick={() => { setEditTask(null); setShowModal(true); }}
+          className="self-start sm:self-auto flex items-center gap-2 px-5 md:px-7 py-2.5 md:py-3 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[11px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-slate-900/20 dark:shadow-white/10"
+        >
+          <Plus size={16} strokeWidth={3} />
+          <span>New Entry</span>
+        </button>
+      </div>
+
+      {/* ─── Search Bar ─── */}
+      <div className="relative">
+        <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600 pointer-events-none" />
+        <input
+          type="text"
+          placeholder="Search tasks..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full bg-white/85 dark:bg-slate-900/40 md:backdrop-blur-xl border border-slate-300/80 dark:border-slate-800/40 rounded-2xl py-3 pl-11 pr-10 text-sm font-medium text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-violet-500/50 transition-all shadow-lg shadow-slate-300/20 dark:shadow-black/10"
+        />
+        {search && (
+          <button
+            onClick={() => setSearch("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+          >
+            <X size={14} />
+          </button>
+        )}
+      </div>
+
+      {/* ─── Filter Pills ─── */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        {/* Date filter */}
+        <div className="flex gap-1 p-1.5 bg-white/85 dark:bg-slate-900/40 md:backdrop-blur-xl border border-slate-300/80 dark:border-slate-800/40 rounded-2xl shadow-md dark:shadow-black/10 overflow-x-auto no-scrollbar">
+          {FILTERS.map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setFilter(key)}
+              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap
+                ${filter === key
+                  ? "bg-violet-600 text-white shadow-lg shadow-violet-500/30"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Status filter */}
+        <div className="flex gap-1 p-1.5 bg-white/85 dark:bg-slate-900/40 md:backdrop-blur-xl border border-slate-300/80 dark:border-slate-800/40 rounded-2xl shadow-md dark:shadow-black/10">
+          {[
+            { key: "all", label: "All" },
+            { key: "pending", label: "Pending" },
+            { key: "completed", label: "Done" },
+          ].map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setStatusFilter(key)}
+              className={`flex-1 sm:flex-none px-3 md:px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all
+                ${statusFilter === key
+                  ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm"
+                  : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-300"
+                }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── Task List ─── */}
+      {loading ? (
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-20 rounded-2xl animate-shimmer" />
+          ))}
+        </div>
+      ) : totalCount === 0 ? (
+        <div className="text-center py-14 md:py-20 bg-white/60 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800/50 rounded-[1.5rem] md:rounded-[2rem] shadow-sm">
+          <Clock size={28} className="mx-auto text-slate-300 dark:text-slate-700 mb-3" />
+          <p className="text-slate-600 dark:text-slate-400 font-semibold text-sm">No tasks found</p>
+          <p className="text-slate-400 dark:text-slate-600 text-xs mt-1">Try a different filter or add a new task</p>
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="mt-4 text-xs text-violet-500 hover:text-violet-400 font-semibold transition-colors"
+            >
+              Clear search
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {/* Pending */}
+          {(statusFilter === "all" || statusFilter === "pending") && pending.length > 0 && (
+            <>
+              {statusFilter === "all" && (
+                <p className="text-[10px] font-black text-amber-500 uppercase tracking-wider px-1 pt-2 pb-1">
+                  Pending ({pending.length})
+                </p>
+              )}
+              {pending.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  onComplete={completeTask}
+                  onUncomplete={uncompleteTask}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </>
+          )}
+
+          {/* Completed */}
+          {(statusFilter === "all" || statusFilter === "completed") && completed.length > 0 && (
+            <>
+              {statusFilter === "all" && (
+                <p className="text-[10px] font-black text-emerald-500 uppercase tracking-wider px-1 pt-4 pb-1">
+                  Completed ({completed.length})
+                </p>
+              )}
+              {completed.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  onComplete={completeTask}
+                  onUncomplete={uncompleteTask}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Spacer for mobile nav */}
+      <div className="h-2 md:h-0" />
+
+      {showModal && (
+        <TaskModal
+          task={editTask}
+          onClose={() => { setShowModal(false); setEditTask(null); }}
+        />
+      )}
+    </div>
+  );
+}

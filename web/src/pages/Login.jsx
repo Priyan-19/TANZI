@@ -1,41 +1,42 @@
 // src/pages/Login.jsx
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Zap, Mail, Lock, User, Eye, EyeOff, AlertCircle } from "lucide-react";
 
 // ── Map Firebase error codes → user-friendly messages ─────────────
-function getFriendlyError(codeOrMessage = "") {
-  const s = (codeOrMessage || "").toLowerCase();
+function getFriendlyError(error) {
+  const code = error?.code || "";
+  const message = error?.message || "";
+  const s = `${code} ${message}`.toLowerCase();
 
+  // Handle specific Google/Auth error codes
+  if (s.includes("12501") || s.includes("cancelled"))
+    return "Sign-in was cancelled.";
   if (s.includes("invalid-credential") || s.includes("wrong-password") || s.includes("user-not-found"))
-    return "Incorrect email or password. Please try again.";
+    return "Incorrect email or password.";
   if (s.includes("email-already-in-use"))
-    return "An account with this email already exists. Try signing in instead.";
+    return "An account with this email already exists.";
   if (s.includes("weak-password"))
-    return "Password is too weak — use at least 6 characters.";
+    return "Password is too weak.";
   if (s.includes("invalid-email"))
     return "Please enter a valid email address.";
   if (s.includes("too-many-requests"))
-    return "Too many failed attempts. Please wait a moment and try again.";
+    return "Too many attempts. Please try again later.";
   if (s.includes("network-request-failed"))
-    return "Network error. Check your internet connection and try again.";
+    return "Network error. Check your connection.";
   if (s.includes("popup-closed-by-user"))
-    return "Sign-in popup was closed. Please try again.";
-  if (s.includes("cancelled-popup-request"))
-    return ""; // silently ignore duplicate popup
+    return "Sign-in popup was closed.";
   if (s.includes("unauthorized-domain"))
-    return "This domain is not authorised for sign-in. Contact support.";
-  if (s.includes("operation-not-allowed"))
-    return "This sign-in method is not enabled. Contact support.";
+    return "This domain is not authorised.";
 
-  // Fallback: strip "Firebase: " prefix + "(auth/...)" code suffix
-  const cleaned = codeOrMessage
-    .replace(/^Firebase:\s*/i, "")
-    .replace(/\s*\(auth\/[^)]+\)\.?\s*$/i, "")
-    .trim();
+  // If it's a developer/config error, show it clearly
+  if (s.includes("id token") || s.includes("configuration") || s.includes("client id"))
+    return message;
 
-  return cleaned || "Something went wrong. Please try again.";
+  // Fallback but include a hint of what went wrong if possible
+  const rawMsg = message.replace(/^Firebase:\s*/i, "").split("(")[0].trim();
+  return rawMsg ? `Login failed: ${rawMsg}` : "Login failed. Please try again.";
 }
 
 export default function Login() {
@@ -67,7 +68,7 @@ export default function Login() {
       }
       // No navigate("/app") here, useEffect handles it
     } catch (err) {
-      const msg = getFriendlyError(err.code || err.message);
+      const msg = getFriendlyError(err);
       if (msg) setError(msg);
     } finally {
       setLoading(false);
@@ -81,7 +82,7 @@ export default function Login() {
       await loginWithGoogle();
       // handled by useEffect
     } catch (err) {
-      const msg = getFriendlyError(err.code || err.message);
+      const msg = getFriendlyError(err);
       if (msg) setError(msg);
     } finally {
       setLoading(false);
@@ -89,7 +90,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen min-h-dvh bg-slate-950 flex items-center justify-center px-4 py-8 relative overflow-hidden">
+    <div className="min-h-dvh bg-slate-950 flex items-center justify-center px-4 py-8 relative overflow-hidden">
       {/* Background ambient */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -left-40 w-80 h-80 bg-violet-600/20 rounded-full blur-3xl" />

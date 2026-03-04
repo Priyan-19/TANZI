@@ -10,6 +10,7 @@ import {
     dismissNotifications
 } from "../services/notificationService";
 import { Capacitor } from '@capacitor/core';
+import { format } from "date-fns";
 
 const TimerContext = createContext();
 
@@ -19,6 +20,12 @@ export function TimerProvider({ children }) {
     const [countdown, setCountdown] = useState(0);
     const [isAlarmRinging, setIsAlarmRinging] = useState(false);
 
+    const [isSleepMode, setIsSleepMode] = useState(() => localStorage.getItem("sleep_mode") === "true");
+    const [sleepSchedule, setSleepSchedule] = useState(() => {
+        const saved = localStorage.getItem("sleep_schedule");
+        return saved ? JSON.parse(saved) : { start: "22:00", end: "07:00" };
+    });
+
     const tasksRef = useRef(tasks);
     const userRef = useRef(user);
 
@@ -26,6 +33,45 @@ export function TimerProvider({ children }) {
         tasksRef.current = tasks;
         userRef.current = user;
     }, [tasks, user]);
+
+    // Persistence and schedule enforcement
+    useEffect(() => {
+        localStorage.setItem("sleep_mode", isSleepMode);
+    }, [isSleepMode]);
+
+    useEffect(() => {
+        localStorage.setItem("sleep_schedule", JSON.stringify(sleepSchedule));
+    }, [sleepSchedule]);
+
+    // Auto-toggle sleep mode based on schedule
+    useEffect(() => {
+        const checkSchedule = () => {
+            const now = new Date();
+            const currentTime = format(now, "HH:mm");
+            const { start, end } = sleepSchedule;
+
+            const isCurrentInSleepRange = () => {
+                if (start <= end) {
+                    return currentTime >= start && currentTime < end;
+                } else {
+                    // Overlap midnight (e.g., 22:00 to 07:00)
+                    return currentTime >= start || currentTime < end;
+                }
+            };
+
+            const shouldBeSleep = isCurrentInSleepRange();
+            if (shouldBeSleep && !isSleepMode) {
+                setIsSleepMode(true);
+            } else if (!shouldBeSleep && isSleepMode && localStorage.getItem("manual_sleep") !== "true") {
+                // Only auto-off if it wasn't manual
+                setIsSleepMode(false);
+            }
+        };
+
+        const interval = setInterval(checkSchedule, 60000);
+        checkSchedule();
+        return () => clearInterval(interval);
+    }, [sleepSchedule, isSleepMode]);
 
     // Handle high-level timer orchestration
     useEffect(() => {
@@ -78,6 +124,14 @@ export function TimerProvider({ children }) {
                 const remaining = Math.max(0, Math.floor((targetTime - now) / 1000));
 
                 if (remaining <= 0) {
+                    // Suppress alarm if in sleep mode
+                    if (isSleepMode) {
+                        // Just reset for next interval silently
+                        const savedFreq = localStorage.getItem("notif_frequency") || "1h";
+                        resetTimer(savedFreq);
+                        return;
+                    }
+
                     if (!Capacitor.isNativePlatform()) {
                         showBrowserNotification("Are You Free..?", "Your check-in timer has finished. Time to review your tasks!");
                         setIsAlarmRinging(true);
@@ -90,7 +144,7 @@ export function TimerProvider({ children }) {
         }, 1000);
 
         return () => clearInterval(ticker);
-    }, [isAlarmRinging]);
+    }, [isAlarmRinging, isSleepMode]);
 
     const resetTimer = (freq) => {
         const freqSeconds = parseFreq(freq);
@@ -111,13 +165,32 @@ export function TimerProvider({ children }) {
         resetTimer(freq);
     };
 
+    const toggleSleepMode = (manual = true) => {
+        setIsSleepMode(prev => {
+            const newVal = !prev;
+            if (manual) {
+                if (newVal) localStorage.setItem("manual_sleep", "true");
+                else localStorage.removeItem("manual_sleep");
+            }
+            return newVal;
+        });
+    };
+
+    const updateSleepSchedule = (start, end) => {
+        setSleepSchedule({ start, end });
+    };
+
     return (
         <TimerContext.Provider value={{
             countdown,
             isAlarmRinging,
             setIsAlarmRinging,
             resetTimer,
-            dismissAlarm
+            dismissAlarm,
+            isSleepMode,
+            sleepSchedule,
+            toggleSleepMode,
+            updateSleepSchedule
         }}>
             {children}
         </TimerContext.Provider>

@@ -1,5 +1,5 @@
 // src/pages/Dashboard.jsx
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useTask } from "../context/TaskContext";
 import { generateDailyReport } from "../services/analyticsService";
@@ -11,7 +11,6 @@ import { format } from "date-fns";
 import TaskModal from "../components/TaskModal";
 import PomodoroTimer from "../components/PomodoroTimer";
 import { Link } from "react-router-dom";
-import React, { useMemo } from "react";
 
 // ─── Stat Card (Memoized) ────────────────────────────────────────────────────
 const StatCard = React.memo(({ label, value, icon: Icon, color, sub, trend }) => {
@@ -96,8 +95,13 @@ export default function Dashboard() {
   const [showModal, setShowModal] = useState(false);
   const [showPomodoro, setShowPomodoro] = useState(false);
 
-  const todayTasks = getTodayTasks();
-  const pendingTasks = getPendingTasks();
+  // Consolidate data retrieval
+  const { todayTasks, pendingTasks } = useMemo(() => {
+    return {
+      todayTasks: getTodayTasks(),
+      pendingTasks: getPendingTasks()
+    };
+  }, [getTodayTasks, getPendingTasks]);
 
   const stats = useMemo(() => {
     const completed = todayTasks.filter((t) => t.status === "completed").length;
@@ -108,11 +112,7 @@ export default function Dashboard() {
     };
   }, [todayTasks, pendingTasks.length]);
 
-  const { completedToday, pendingCount, completionRate } = {
-    completedToday: stats.completed,
-    pendingCount: stats.pending,
-    completionRate: stats.completionRate
-  };
+  const { completedToday, pendingCount, completionRate } = stats;
 
   useEffect(() => {
     if (user && todayTasks.length > 0) {
@@ -120,14 +120,17 @@ export default function Dashboard() {
     }
   }, [user, todayTasks.length]);
 
-  const greeting = () => {
+  const headerData = useMemo(() => {
     const h = new Date().getHours();
-    if (h < 12) return "Good morning";
-    if (h < 17) return "Good afternoon";
-    return "Good evening";
-  };
+    let greet = "Good evening";
+    if (h < 12) greet = "Good morning";
+    else if (h < 17) greet = "Good afternoon";
 
-  const firstName = (user?.displayName || "there").split(" ")[0];
+    const firstName = (user?.displayName || "there").split(" ")[0];
+    const dateStr = format(new Date(), "MMMM do");
+
+    return { greet, firstName, dateStr };
+  }, [user?.displayName]);
 
   return (
     <div className="max-w-6xl mx-auto space-y-4 md:space-y-6">
@@ -140,11 +143,11 @@ export default function Dashboard() {
               MISSION BRIEFING
             </div>
             <div className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
-            <span className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest">{format(new Date(), "MMMM do")}</span>
+            <span className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest">{headerData.dateStr}</span>
           </div>
           <h1 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, fontStyle: 'italic', letterSpacing: '-0.03em', lineHeight: 1.1, paddingBottom: '4px', overflow: 'visible' }} className="text-3xl md:text-5xl text-slate-900 dark:text-slate-100 mb-2">
-            {greeting()},{" "}
-            <span style={{ background: 'linear-gradient(to right, #7c3aed, #06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', display: 'inline-block', paddingRight: '4px' }}>{firstName}</span>.
+            {headerData.greet},{" "}
+            <span style={{ background: 'linear-gradient(to right, #7c3aed, #06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', display: 'inline-block', paddingRight: '4px' }}>{headerData.firstName}</span>.
           </h1>
           <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm font-semibold leading-relaxed max-w-lg">
             {todayTasks.length === 0

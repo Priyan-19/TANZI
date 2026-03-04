@@ -1,6 +1,6 @@
 // src/layouts/Layout.jsx
 import { Outlet, NavLink, useNavigate, Link } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useTask } from "../context/TaskContext";
 import { useTheme } from "../context/ThemeContext";
@@ -36,7 +36,7 @@ export default function Layout() {
   const { user, logout } = useAuth();
   const { tasks } = useTask();
   const { isDark, toggle } = useTheme();
-  const { isAlarmRinging, dismissAlarm: contextDismissAlarm, resetTimer } = useTimer();
+  const { isAlarmRinging, dismissAlarm: contextDismissAlarm, resetTimer, isSleepMode, toggleSleepMode, sleepSchedule, updateSleepSchedule } = useTimer();
   const [collapsed, setCollapsed] = useState(false);
   const [notifStatus, setNotifStatus] = useState(
     typeof window !== "undefined" && window.Notification ? window.Notification.permission : "default"
@@ -46,6 +46,8 @@ export default function Layout() {
     return saved === null ? true : saved === "true";
   });
   const [profilePopoverOpen, setProfilePopoverOpen] = useState(false);
+  const [showSleepSettings, setShowSleepSettings] = useState(false);
+  const clickTimerRef = useRef(null);
   const [notifFrequency, setNotifFrequency] = useState("1h");
   const [showFreqSelector, setShowFreqSelector] = useState(false);
   const [showMobileFreqSelector, setShowMobileFreqSelector] = useState(false);
@@ -93,13 +95,28 @@ export default function Layout() {
 
   // Lock body scroll when mobile popover is open
   useEffect(() => {
-    if (profilePopoverOpen) {
+    if (profilePopoverOpen || showSleepSettings) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
     }
     return () => { document.body.style.overflow = ""; };
-  }, [profilePopoverOpen]);
+  }, [profilePopoverOpen, showSleepSettings]);
+
+  const handleSleepClick = () => {
+    if (clickTimerRef.current) {
+      // Double tap detected
+      clearTimeout(clickTimerRef.current);
+      clickTimerRef.current = null;
+      setShowSleepSettings(true);
+    } else {
+      // Single tap potential
+      clickTimerRef.current = setTimeout(() => {
+        toggleSleepMode(true);
+        clickTimerRef.current = null;
+      }, 250);
+    }
+  };
 
   // Timer logic has been moved to TimerProvider context for performance.
   // We only handle beep here on web if alarm is active.
@@ -466,7 +483,7 @@ export default function Layout() {
 
         {/* Top Floating Header */}
         <header className="sticky top-0 z-40 p-4 pb-0 md:p-4">
-          <div className="flex items-center justify-between px-5 md:px-6 py-3 rounded-2xl md:rounded-2xl bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl md:backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/40 shadow-sm md:shadow-lg shadow-slate-200/50 dark:shadow-black/20 transition-colors duration-500">
+          <div className="flex items-center justify-between px-5 md:px-6 py-3 rounded-2xl md:rounded-2xl bg-white/80 dark:bg-slate-900/60 md:backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/40 shadow-sm md:shadow-lg shadow-slate-200/50 dark:shadow-black/20 transition-colors duration-500">
             <div className="flex items-center gap-3">
               {/* Mobile Logo */}
               <Link to="/app" className="md:hidden flex items-center gap-2.5">
@@ -495,6 +512,24 @@ export default function Layout() {
                 </div>
               )}
               <div className="hidden md:block w-px h-6 bg-slate-200 dark:bg-slate-800" />
+
+              {/* Sleep Mode Toggle (Mobile Only) */}
+              {Capacitor.isNativePlatform() && (
+                <button
+                  onClick={handleSleepClick}
+                  className={`relative w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90
+                    ${isSleepMode
+                      ? "bg-gradient-to-br from-indigo-600 to-violet-800 text-white shadow-lg shadow-indigo-500/40 border border-indigo-400/30"
+                      : "bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border border-transparent"
+                    }`}
+                >
+                  <Moon size={15} fill={isSleepMode ? "currentColor" : "none"} strokeWidth={2.5} />
+                  {isSleepMode && (
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-cyan-400 rounded-full border-2 border-slate-950 animate-pulse" />
+                  )}
+                </button>
+              )}
+
               <button
                 onClick={() => setProfilePopoverOpen(true)}
                 className="flex items-center gap-2 py-1 pr-1 md:pr-3 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all border border-transparent"
@@ -744,6 +779,67 @@ export default function Layout() {
               {/* Bottom spacer for safe area */}
               <div className="h-6" />
             </div>
+          </div>
+        </div>
+      )}
+      {/* ─── Sleep Settings Modal (Mobile only) ────────────────────── */}
+      {showSleepSettings && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-md p-6 animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[32px] p-8 border border-slate-200 dark:border-slate-800 shadow-2xl animate-scale-in">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500">
+                  <Clock size={22} />
+                </div>
+                <div>
+                  <h3 className="text-base font-black tracking-tighter italic">Sleep Routine</h3>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Notification Silence</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowSleepSettings(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-6 mb-8">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Starts At</label>
+                <input
+                  type="time"
+                  value={sleepSchedule.start}
+                  onChange={(e) => updateSleepSchedule(e.target.value, sleepSchedule.end)}
+                  className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-black text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500/50 transition-all"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Wakes Up At</label>
+                <input
+                  type="time"
+                  value={sleepSchedule.end}
+                  onChange={(e) => updateSleepSchedule(sleepSchedule.start, e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-black text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500/50 transition-all"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl mb-8">
+              <div className="w-8 h-8 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500 flex-shrink-0">
+                <Zap size={15} />
+              </div>
+              <p className="text-[10px] font-bold text-slate-500 leading-normal">
+                Sleep mode automatically pauses all "Are You Free..?" reminders during your window.
+              </p>
+            </div>
+
+            <button
+              onClick={() => setShowSleepSettings(false)}
+              className="w-full py-4 rounded-2xl bg-indigo-600 text-white text-xs font-black uppercase tracking-widest shadow-lg shadow-indigo-500/25 active:scale-[0.98] transition-all"
+            >
+              Update Routine
+            </button>
           </div>
         </div>
       )}
