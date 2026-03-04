@@ -3,8 +3,8 @@ import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { TaskProvider } from "./context/TaskContext";
 import { ThemeProvider } from "./context/ThemeContext";
+import { TimerProvider } from "./context/TimerContext";
 import Landing from "./pages/Landing";
-
 import { Toaster } from "react-hot-toast";
 
 // Lazy load heavy components to speed up initial paint
@@ -58,11 +58,6 @@ function ProtectedRoute({ children }) {
   return user ? children : <Navigate to="/login" />;
 }
 
-/**
- * Root redirection logic:
- * - If logged in: Go to Dashboard
- * - If guest: Show Landing page
- */
 function RootRedirect() {
   const { user, loading } = useAuth();
   if (loading) return <LoadingScreen />;
@@ -75,28 +70,25 @@ export default function App() {
       <ThemeProvider>
         <AuthProvider>
           <TaskProvider>
-            <React.Suspense fallback={<LoadingScreen />}>
-              <HashRouter>
-                <Toaster position="top-right" toastOptions={{
-                  style: { background: '#1e293b', color: '#f8fafc', border: '1px solid #334155' }
-                }} />
-                <Routes>
-                  {/* Public Routes */}
-                  <Route path="/" element={<RootRedirect />} />
-                  <Route path="/login" element={<Login />} />
-
-                  {/* Private Routes */}
-                  <Route path="/app" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-                    <Route index element={<Dashboard />} />
-                    <Route path="tasks" element={<Tasks />} />
-                    <Route path="analytics" element={<Analytics />} />
-                  </Route>
-
-                  {/* Catch-all */}
-                  <Route path="*" element={<Navigate to="/" />} />
-                </Routes>
-              </HashRouter>
-            </React.Suspense>
+            <TimerProvider>
+              <React.Suspense fallback={<LoadingScreen />}>
+                <HashRouter>
+                  <Toaster position="top-right" toastOptions={{
+                    style: { background: '#1e293b', color: '#f8fafc', border: '1px solid #334155' }
+                  }} />
+                  <Routes>
+                    <Route path="/" element={<RootRedirect />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/app" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+                      <Route index element={<Dashboard />} />
+                      <Route path="tasks" element={<Tasks />} />
+                      <Route path="analytics" element={<Analytics />} />
+                    </Route>
+                    <Route path="*" element={<Navigate to="/" />} />
+                  </Routes>
+                </HashRouter>
+              </React.Suspense>
+            </TimerProvider>
           </TaskProvider>
         </AuthProvider>
       </ThemeProvider>

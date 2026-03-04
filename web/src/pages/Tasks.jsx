@@ -75,7 +75,7 @@ export default function Tasks() {
           placeholder="Search tasks..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full bg-white/85 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-300/80 dark:border-slate-800/40 rounded-2xl py-3 pl-11 pr-10 text-sm font-medium text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-violet-500/50 transition-all shadow-lg shadow-slate-300/20 dark:shadow-black/10"
+          className="w-full bg-white/85 dark:bg-slate-900/40 backdrop-blur-md md:backdrop-blur-xl border border-slate-300/80 dark:border-slate-800/40 rounded-2xl py-3 pl-11 pr-10 text-sm font-medium text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-violet-500/50 transition-all shadow-lg shadow-slate-300/20 dark:shadow-black/10"
         />
         {search && (
           <button
@@ -90,7 +90,7 @@ export default function Tasks() {
       {/* ─── Filter Pills ─── */}
       <div className="flex flex-col sm:flex-row gap-3">
         {/* Date filter */}
-        <div className="flex gap-1 p-1.5 bg-white/85 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-300/80 dark:border-slate-800/40 rounded-2xl shadow-md dark:shadow-black/10 overflow-x-auto no-scrollbar">
+        <div className="flex gap-1 p-1.5 bg-white/85 dark:bg-slate-900/40 backdrop-blur-md md:backdrop-blur-xl border border-slate-300/80 dark:border-slate-800/40 rounded-2xl shadow-md dark:shadow-black/10 overflow-x-auto no-scrollbar">
           {FILTERS.map(({ key, label }) => (
             <button
               key={key}
@@ -208,12 +208,30 @@ export default function Tasks() {
   );
 }
 
-function TaskCard({ task, onComplete, onUncomplete, onEdit, onDelete }) {
+const TaskCard = React.memo(({ task, onComplete, onUncomplete, onEdit, onDelete }) => {
   const isCompleted = task.status === "completed";
+
+  // Pre-formatted date for performance
+  const displayDate = React.useMemo(() => {
+    try {
+      return format(new Date(task.date.replace(/-/g, '/')), "MMM d");
+    } catch (e) {
+      return task.date;
+    }
+  }, [task.date]);
+
+  const completionTime = React.useMemo(() => {
+    if (!task.completedAt) return null;
+    try {
+      return format(task.completedAt, "HH:mm");
+    } catch (e) {
+      return "";
+    }
+  }, [task.completedAt]);
 
   return (
     <div
-      className={`group flex items-start gap-3 md:gap-4 p-4 md:p-5 bg-white/85 dark:bg-slate-900/40 backdrop-blur-xl border rounded-[1.25rem] md:rounded-[1.5rem] transition-all duration-200 shadow-md shadow-slate-300/20 dark:shadow-black/10
+      className={`group flex items-start gap-3 md:gap-4 p-4 md:p-5 bg-white dark:bg-slate-900/60 md:backdrop-blur-xl border rounded-[1.25rem] md:rounded-[1.5rem] transition-all duration-200 shadow-md shadow-slate-300/20 dark:shadow-black/10
         ${isCompleted
           ? "border-slate-200 dark:border-slate-800/30 opacity-50 grayscale"
           : "border-slate-300/80 dark:border-slate-800/40 hover:border-violet-500/30 hover:translate-x-0.5 active:scale-[0.99]"
@@ -241,15 +259,15 @@ function TaskCard({ task, onComplete, onUncomplete, onEdit, onDelete }) {
         )}
         <div className="flex items-center gap-2 mt-2 flex-wrap">
           <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-600 uppercase tracking-tight">
-            {format(new Date(task.date.replace(/-/g, '/')), "MMM d")}
+            {displayDate}
           </span>
           <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider
             ${isCompleted ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-amber-500/10 text-amber-600 dark:text-amber-400"}`}>
             {task.status}
           </span>
-          {task.completedAt && (
+          {completionTime && (
             <span className="text-[10px] text-slate-400 dark:text-slate-600">
-              Done {format(task.completedAt, "HH:mm")}
+              Done {completionTime}
             </span>
           )}
         </div>
@@ -274,4 +292,4 @@ function TaskCard({ task, onComplete, onUncomplete, onEdit, onDelete }) {
       </div>
     </div>
   );
-}
+});

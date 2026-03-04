@@ -4,12 +4,14 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useTask } from "../context/TaskContext";
 import { useTheme } from "../context/ThemeContext";
+import { useTimer } from "../context/TimerContext";
 import { format } from "date-fns";
 import {
   LayoutDashboard, CheckSquare, BarChart3, LogOut,
   Sun, Moon, Menu, X, Zap, Bell,
   AlertCircle, ChevronRight, Settings, Clock
 } from "lucide-react";
+import CountdownDisplay from "../components/CountdownDisplay";
 import {
   requestNotificationPermission,
   startTaskReminders,
@@ -34,6 +36,7 @@ export default function Layout() {
   const { user, logout } = useAuth();
   const { tasks } = useTask();
   const { isDark, toggle } = useTheme();
+  const { isAlarmRinging, dismissAlarm: contextDismissAlarm, resetTimer } = useTimer();
   const [collapsed, setCollapsed] = useState(false);
   const [notifStatus, setNotifStatus] = useState(
     typeof window !== "undefined" && window.Notification ? window.Notification.permission : "default"
@@ -42,13 +45,11 @@ export default function Layout() {
     const saved = localStorage.getItem("notifs_enabled");
     return saved === null ? true : saved === "true";
   });
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [profilePopoverOpen, setProfilePopoverOpen] = useState(false);
   const [notifFrequency, setNotifFrequency] = useState("1h");
   const [showFreqSelector, setShowFreqSelector] = useState(false);
   const [showMobileFreqSelector, setShowMobileFreqSelector] = useState(false);
   const [showNotifBanner, setShowNotifBanner] = useState(false);
-  const [countdown, setCountdown] = useState(0);
-  const [isAlarmRinging, setIsAlarmRinging] = useState(false);
   const [customFreq, setCustomFreq] = useState("");
   const navigate = useNavigate();
   const tasksRef = useRef(tasks);
@@ -90,93 +91,22 @@ export default function Layout() {
     }
   }, [user]);
 
-  // Lock body scroll when mobile menu is open
+  // Lock body scroll when mobile popover is open
   useEffect(() => {
-    if (mobileMenuOpen) {
+    if (profilePopoverOpen) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
     }
     return () => { document.body.style.overflow = ""; };
-  }, [mobileMenuOpen]);
+  }, [profilePopoverOpen]);
 
-  useEffect(() => {
-    if (!user || !notifsEnabled || notifFrequency === "off") {
-      stopTaskReminders();
-      setCountdown(0);
-      localStorage.removeItem("next_checkin_at");
-      return;
-    }
-    setupForegroundMessageHandler(null);
-    const freqSeconds = parseFreq(notifFrequency);
-
-    const isGranted = Capacitor.isNativePlatform()
-      ? notifsEnabled
-      : (typeof window !== "undefined" && window.Notification?.permission === "granted");
-    if (isGranted && freqSeconds > 0) {
-      // Logic for persistent countdown
-      const savedTarget = localStorage.getItem("next_checkin_at");
-      let targetTime = parseInt(savedTarget);
-      const now = Date.now();
-
-      if (!targetTime || targetTime < now || targetTime > now + (freqSeconds * 1000)) {
-        targetTime = now + (freqSeconds * 1000);
-        localStorage.setItem("next_checkin_at", targetTime.toString());
-      }
-
-      // Schedule native notification batch for background/killed reliability (no-op on web)
-      scheduleCheckInBatch(targetTime, freqSeconds);
-
-      const initialRemaining = Math.max(0, Math.floor((targetTime - now) / 1000));
-      setCountdown(initialRemaining);
-
-      // Only run periodic background scanners on WEB to avoid duplication on Mobile
-      if (!Capacitor.isNativePlatform()) {
-        startTaskReminders(() => tasksRef.current, freqSeconds * 1000, () => userRef.current);
-      }
-    }
-    return () => stopTaskReminders();
-  }, [user, notifsEnabled, notifFrequency]);
-
-  const isAlarmRingingRef = useRef(isAlarmRinging);
-  isAlarmRingingRef.current = isAlarmRinging;
-
-  useEffect(() => {
-    if (!notifsEnabled || notifFrequency === "off" || countdown < 0) return;
-
-    const timer = setInterval(() => {
-      if (isAlarmRingingRef.current) return;
-
-      const targetTime = parseInt(localStorage.getItem("next_checkin_at") || "0");
-      const now = Date.now();
-
-      if (targetTime > 0) {
-        const remaining = Math.max(0, Math.floor((targetTime - now) / 1000));
-
-        if (remaining <= 0) {
-          if (Capacitor.isNativePlatform()) {
-            // Already scheduled native notification should be visible now.
-            // We don't show the internal modal for Android as per user request.
-            setCountdown(0);
-          } else {
-            // Web: Show browser notification and internal modal
-            showBrowserNotification("Are You Free..?", "Your check-in timer has finished. Time to review your tasks!");
-            setIsAlarmRinging(true);
-            setCountdown(0);
-          }
-        } else {
-          setCountdown(remaining);
-        }
-      }
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [notifsEnabled, notifFrequency]);
-
+  // Timer logic has been moved to TimerProvider context for performance.
+  // We only handle beep here on web if alarm is active.
   useEffect(() => {
     let audioCtx = null;
     let interval = null;
-    if (isAlarmRinging) {
+    if (isAlarmRinging && !Capacitor.isNativePlatform()) {
       try {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const playBeep = () => {
@@ -185,14 +115,11 @@ export default function Layout() {
           const gainNode = audioCtx.createGain();
           oscillator.connect(gainNode);
           gainNode.connect(audioCtx.destination);
-
           oscillator.type = 'square';
           oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
           oscillator.frequency.setValueAtTime(600, audioCtx.currentTime + 0.2);
-
           gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
           gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
-
           oscillator.start(audioCtx.currentTime);
           oscillator.stop(audioCtx.currentTime + 0.5);
         };
@@ -208,40 +135,15 @@ export default function Layout() {
     };
   }, [isAlarmRinging]);
 
-  const dismissAlarm = () => {
-    setIsAlarmRinging(false);
-    dismissNotifications();
-    const freqSeconds = parseFreq(notifFrequency);
-    if (freqSeconds > 0) {
-      const nextTarget = Date.now() + (freqSeconds * 1000);
-      localStorage.setItem("next_checkin_at", nextTarget.toString());
-      scheduleCheckInBatch(nextTarget, freqSeconds); // Schedule the next one immediately
-      setCountdown(freqSeconds);
-    } else {
-      setCountdown(0);
-      localStorage.removeItem("next_checkin_at");
-    }
+  const handleDismissAlarm = () => {
+    contextDismissAlarm(notifFrequency);
   };
 
   useEffect(() => {
     const handleReset = (e) => {
       console.log('Resetting check-in via native notification listener:', e.detail.action);
-
-      // Stop alarm first
-      setIsAlarmRinging(false);
-      dismissNotifications();
-
-      const action = e.detail.action;
-      const freqSeconds = parseFreq(notifFrequency);
-
-      if (freqSeconds > 0) {
-        const nextTarget = Date.now() + (freqSeconds * 1000);
-        localStorage.setItem("next_checkin_at", nextTarget.toString());
-        scheduleCheckInBatch(nextTarget, freqSeconds);
-        setCountdown(freqSeconds);
-      }
-
-      if (action === 'FREE') {
+      contextDismissAlarm(notifFrequency);
+      if (e.detail.action === 'FREE') {
         navigate("/app/tasks");
       }
     };
@@ -249,14 +151,7 @@ export default function Layout() {
     return () => window.removeEventListener('checkinReset', handleReset);
   }, [notifFrequency]);
 
-  const formatCountdown = (seconds) => {
-    if (seconds <= 0) return "00:00";
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    if (h > 0) return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
+  // CountdownDisplay is now a standalone component in ../components/CountdownDisplay.jsx
 
   const toggleNotifs = async () => {
     // Safe helper — returns "granted"/"denied"/"default" regardless of platform
@@ -287,11 +182,7 @@ export default function Layout() {
         if (perm === "granted") {
           setNotifsEnabled(true);
           localStorage.setItem("notifs_enabled", "true");
-          const freqSeconds = parseFreq(notifFrequency);
-          if (freqSeconds > 0) {
-            startTaskReminders(() => tasksRef.current, freqSeconds * 1000, () => userRef.current);
-            setCountdown(freqSeconds);
-          }
+          resetTimer(notifFrequency);
         } else if (perm === "denied") {
           setShowNotifBanner(true);
           setTimeout(() => setShowNotifBanner(false), 7000);
@@ -300,21 +191,13 @@ export default function Layout() {
           // If we reach here, assume granted (Capacitor resolves via its own listener)
           setNotifsEnabled(true);
           localStorage.setItem("notifs_enabled", "true");
-          const freqSeconds = parseFreq(notifFrequency);
-          if (freqSeconds > 0) {
-            startTaskReminders(() => tasksRef.current, freqSeconds * 1000, () => userRef.current);
-            setCountdown(freqSeconds);
-          }
+          resetTimer(notifFrequency);
         }
       } else {
         // Permission already granted — enable immediately
         setNotifsEnabled(true);
         localStorage.setItem("notifs_enabled", "true");
-        const freqSeconds = parseFreq(notifFrequency);
-        if (freqSeconds > 0) {
-          startTaskReminders(() => tasksRef.current, freqSeconds * 1000, () => userRef.current);
-          setCountdown(freqSeconds);
-        }
+        resetTimer(notifFrequency);
         // Best-effort FCM token refresh (don't block on it)
         requestNotificationPermission(user?.uid).catch(() => { });
       }
@@ -328,6 +211,8 @@ export default function Layout() {
 
   const updateFrequency = async (freq) => {
     setNotifFrequency(freq);
+    localStorage.setItem("notif_frequency", freq);
+    resetTimer(freq);
     if (!user) return;
     try {
       const { db } = await import("../firebase/config");
@@ -352,7 +237,6 @@ export default function Layout() {
   return (
     <div className="flex h-dvh bg-slate-50 text-slate-900 dark:bg-[#020617] dark:text-slate-100 overflow-hidden transition-colors duration-500 font-sans selection:bg-violet-500/30">
 
-      {/* ─── Desktop Sidebar ─────────────────────────────────────── */}
       <aside
         className={`
           hidden md:flex flex-col transition-all duration-300 m-4 rounded-3xl
@@ -372,7 +256,7 @@ export default function Layout() {
               </div>
             </div>
             {!collapsed && (
-              <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, fontSize: '1.25rem', letterSpacing: '-0.03em', fontStyle: 'italic', background: 'linear-gradient(to right, #7c3aed, #06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', display: 'inline-block', paddingRight: '4px' }}>
+              <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, fontSize: '1.25rem', letterSpacing: '-0.03em', fontStyle: 'italic', background: 'linear-gradient(to right, #7c3aed, #06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', display: 'inline-block', paddingRight: '0.15em' }}>
                 TANZI
               </span>
             )}
@@ -441,11 +325,8 @@ export default function Layout() {
           )}
 
           {/* Timer Display */}
-          {notifsEnabled && notifFrequency !== 'off' && (countdown > 0 || isAlarmRinging) && !collapsed && (
-            <div className="mb-3 flex items-center gap-3 text-sm font-black text-cyan-400 dark:text-cyan-400 uppercase tracking-[0.15em] bg-cyan-500/10 p-3.5 rounded-2xl border border-cyan-500/20 shadow-[0_0_15px_rgba(34,211,238,0.1)] backdrop-blur-md">
-              <Clock size={16} strokeWidth={3} className="text-cyan-500" />
-              <span className="drop-shadow-sm">Next Check-in: {formatCountdown(countdown)}</span>
-            </div>
+          {notifsEnabled && notifFrequency !== 'off' && !collapsed && (
+            <CountdownDisplay />
           )}
 
           {/* Notification Toggle Container */}
@@ -564,7 +445,7 @@ export default function Layout() {
             className="flex items-center gap-3 px-4 py-3 w-full rounded-2xl text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all font-bold text-xs group"
           >
             <LogOut size={18} className="transition-transform group-hover:translate-x-0.5" />
-            {!collapsed && "Sign Out"}
+            {!collapsed && <span>Sign Out</span>}
           </button>
         </div>
 
@@ -584,26 +465,17 @@ export default function Layout() {
       <main className="flex-1 relative flex flex-col min-w-0 overflow-hidden">
 
         {/* Top Floating Header */}
-        <header className="sticky top-0 z-40 p-3 md:p-4 pb-0">
-          <div className="flex items-center justify-between px-4 md:px-6 py-2.5 md:py-3 rounded-2xl bg-white/80 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-300/80 dark:border-slate-800/40 shadow-lg shadow-slate-300/30 dark:shadow-black/20">
+        <header className="sticky top-0 z-40 p-4 pb-0 md:p-4">
+          <div className="flex items-center justify-between px-5 md:px-6 py-3 rounded-2xl md:rounded-2xl bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl md:backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/40 shadow-sm md:shadow-lg shadow-slate-200/50 dark:shadow-black/20 transition-colors duration-500">
             <div className="flex items-center gap-3">
-              {/* Mobile menu button */}
-              <button
-                onClick={() => setMobileMenuOpen(true)}
-                className="md:hidden tap-target flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
-                aria-label="Open menu"
-              >
-                <Menu size={20} />
-              </button>
-
               {/* Mobile Logo */}
-              <Link to="/" className="md:hidden flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-600 to-cyan-500 p-[2px] shadow-md shadow-violet-500/25">
-                  <div className="w-full h-full bg-slate-900 rounded-[10px] flex items-center justify-center">
-                    <Zap size={14} className="text-white fill-white" />
+              <Link to="/app" className="md:hidden flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 to-cyan-500 p-[2px] shadow-lg shadow-violet-500/20">
+                  <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
+                    <Zap size={16} className="text-white fill-white" />
                   </div>
                 </div>
-                <div className="flex-1 min-w-0"><span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, fontSize: '1rem', letterSpacing: '-0.03em', fontStyle: 'italic', background: 'linear-gradient(to right, #7c3aed, #06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', display: 'inline-block', paddingRight: '3px' }}>TANZI</span></div>
+                <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, fontSize: '1.2rem', letterSpacing: '-0.04em', fontStyle: 'italic', background: 'linear-gradient(to right, #8b5cf6, #06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', paddingRight: '0.15em' }}>TANZI</span>
               </Link>
 
               {/* Desktop date */}
@@ -617,17 +489,20 @@ export default function Layout() {
 
             <div className="flex items-center gap-2 md:gap-4">
               {pendingCount > 0 && (
-                <div className="flex items-center gap-1.5 px-2.5 md:px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] md:text-xs font-bold animate-slide-up">
+                <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] md:text-xs font-black animate-slide-up">
                   <AlertCircle size={11} />
                   <span>{pendingCount} Left</span>
                 </div>
               )}
               <div className="hidden md:block w-px h-6 bg-slate-200 dark:bg-slate-800" />
-              <button className="flex items-center gap-2 px-1 py-1 pr-2 md:pr-3 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-all border border-transparent hover:border-slate-200 dark:hover:border-slate-700/50">
-                <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center text-white text-xs font-bold shadow-md">
+              <button
+                onClick={() => setProfilePopoverOpen(true)}
+                className="flex items-center gap-2 py-1 pr-1 md:pr-3 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all border border-transparent"
+              >
+                <div className="w-8 h-8 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center text-white text-[11px] font-black shadow-lg shadow-violet-500/20">
                   {(user?.displayName || user?.email || "U")[0].toUpperCase()}
                 </div>
-                <span className="hidden lg:block text-xs font-bold tracking-tighter">My Account</span>
+                <span className="hidden lg:block text-xs font-black tracking-tight text-slate-700 dark:text-slate-300">My Account</span>
               </button>
             </div>
           </div>
@@ -640,7 +515,7 @@ export default function Layout() {
 
         {/* ─── Mobile Bottom Navigation ─── */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50">
-          <div className="mx-3 mb-3 p-2 rounded-3xl bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-2xl border border-white/10 shadow-2xl shadow-black/60 flex items-center justify-around bottom-nav-safe">
+          <div className="mx-3 mb-3 p-2 rounded-3xl bg-white/90 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-200 dark:border-white/10 shadow-xl shadow-slate-200/50 dark:shadow-black/60 flex items-center justify-around bottom-nav-safe transition-colors duration-500">
             {navItems.map(({ to, icon: Icon, label }) => (
               <NavLink
                 key={to}
@@ -650,14 +525,14 @@ export default function Layout() {
                   `relative flex flex-col items-center gap-1 px-4 py-2.5 rounded-2xl transition-all duration-200
                   ${isActive
                     ? "text-white"
-                    : "text-slate-500 hover:text-slate-300"
+                    : "text-slate-500 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-300"
                   }`
                 }
               >
                 {({ isActive }) => (
                   <>
                     {isActive && (
-                      <div className="absolute inset-0 bg-violet-600/25 rounded-2xl" />
+                      <div className="absolute inset-0 bg-violet-600 dark:bg-violet-600/40 rounded-2xl shadow-lg shadow-violet-500/20" />
                     )}
                     <div className="relative">
                       <Icon size={21} strokeWidth={isActive ? 2.5 : 1.8} />
@@ -667,11 +542,13 @@ export default function Layout() {
                         </span>
                       )}
                     </div>
-                    <div className="flex-1 min-w-0"><span className={`text-[9px] font-black uppercase tracking-widest ${isActive ? "text-violet-300" : ""}`}>
-                      {label}
-                    </span></div>
+                    <div className="flex-1 min-w-0">
+                      <span className={`text-[9px] font-black uppercase tracking-widest relative z-10 ${isActive ? "text-white dark:text-violet-200" : ""}`}>
+                        {label}
+                      </span>
+                    </div>
                     {isActive && (
-                      <div className="absolute bottom-1 w-1 h-1 rounded-full bg-violet-400 shadow-[0_0_6px_rgba(167,139,250,0.8)]" />
+                      <div className="absolute bottom-1 w-1 h-1 rounded-full bg-violet-400 dark:bg-violet-400 shadow-[0_0_6px_rgba(167,139,250,0.8)]" />
                     )}
                   </>
                 )}
@@ -681,7 +558,7 @@ export default function Layout() {
             {/* Theme toggle in bottom nav */}
             <button
               onClick={toggle}
-              className="flex flex-col items-center gap-1 px-4 py-2.5 rounded-2xl text-slate-500 hover:text-slate-300 transition-all"
+              className="flex flex-col items-center gap-1 px-4 py-2.5 rounded-2xl text-slate-500 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-300 transition-all"
             >
               {isDark ? <Sun size={21} strokeWidth={1.8} /> : <Moon size={21} strokeWidth={1.8} />}
               <span className="text-[9px] font-black uppercase tracking-widest">
@@ -694,7 +571,7 @@ export default function Layout() {
 
       {/* ─── Alarm Modal ────────────────────────────────────────── */}
       {isAlarmRinging && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in text-slate-900">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
           <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[32px] p-8 text-center shadow-2xl shadow-violet-500/20 border border-slate-200 dark:border-slate-800 animate-slide-up transform scale-100 flex flex-col items-center">
             <div className="w-24 h-24 bg-amber-500/10 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(245,158,11,0.3)] animate-pulse">
               <Clock size={48} className="text-amber-500 animate-bounce" />
@@ -705,17 +582,17 @@ export default function Layout() {
             </p>
             <div className="flex w-full gap-3">
               <button
-                onClick={() => dismissAlarm()}
-                className="w-1/2 py-4 text-base font-black text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition-all"
+                onClick={() => handleDismissAlarm()}
+                className="w-1/2 py-4 text-sm font-black text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition-all uppercase tracking-widest"
               >
                 Busy
               </button>
               <button
                 onClick={() => {
-                  dismissAlarm();
+                  handleDismissAlarm();
                   navigate("/app/tasks");
                 }}
-                className="w-1/2 py-4 text-base font-black text-white bg-gradient-to-r from-violet-600 to-cyan-500 rounded-2xl shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 active:scale-95 transition-all"
+                className="w-1/2 py-4 text-sm font-black text-white bg-gradient-to-r from-violet-600 to-cyan-500 rounded-2xl shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 active:scale-95 transition-all uppercase tracking-widest"
               >
                 Free
               </button>
@@ -724,196 +601,125 @@ export default function Layout() {
         </div>
       )}
 
-      {/* ─── Mobile Sidebar Overlay ─────────────────────────────── */}
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 z-[100] md:hidden animate-fade-in">
+      {/* ─── Profile Popover Overlay (Mobile Bottom Sheet) ─────────────────────────────── */}
+      {profilePopoverOpen && (
+        <div className="fixed inset-0 z-[100] md:hidden animate-fade-in flex items-end">
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/70 backdrop-blur-md"
-            onClick={() => setMobileMenuOpen(false)}
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
+            onClick={() => setProfilePopoverOpen(false)}
           />
 
-          {/* Panel */}
-          <div className="absolute top-3 left-3 bottom-3 w-[min(80vw,300px)] bg-white dark:bg-[#0f172a] rounded-[28px] flex flex-col animate-slide-right border border-slate-300/60 dark:border-slate-800/60 shadow-2xl shadow-black/40 overflow-hidden">
+          {/* Panel (Bottom Sheet) */}
+          <div className="relative w-full bg-white dark:bg-slate-950 rounded-t-[2.5rem] border-t border-slate-200 dark:border-slate-800 shadow-[0_-10px_40px_rgba(0,0,0,0.3)] overflow-hidden animate-slide-up pb-safe transition-colors duration-500">
+            {/* Grab handle */}
+            <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full mx-auto mt-4 mb-2" onClick={() => setProfilePopoverOpen(false)} />
 
-            {/* Panel Header */}
-            <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 to-cyan-500 p-[2px] shadow-lg shadow-violet-500/25">
-                  <div className="w-full h-full bg-slate-900 rounded-[11px] flex items-center justify-center">
-                    <Zap size={15} className="text-white fill-white" />
-                  </div>
+            <div className="p-6 md:p-8">
+              <div className="flex justify-between items-center mb-6 px-1">
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight italic">Account Settings</h3>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Control your workspace</p>
                 </div>
-                <div className="flex-1 min-w-0"><span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, fontSize: '1.25rem', letterSpacing: '-0.03em', fontStyle: 'italic', background: 'linear-gradient(to right, #7c3aed, #06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', display: 'inline-block', paddingRight: '4px' }}>TANZI</span></div>
+                <button
+                  onClick={() => setProfilePopoverOpen(false)}
+                  className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-900 text-slate-500 flex items-center justify-center active:scale-90 transition-transform"
+                >
+                  <X size={20} />
+                </button>
               </div>
-              <button
-                onClick={() => setMobileMenuOpen(false)}
-                className="tap-target flex items-center justify-center rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
-              >
-                <X size={18} />
-              </button>
-            </div>
 
-            {/* User card */}
-            <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-500 to-cyan-400 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-violet-500/20 flex-shrink-0">
+              {/* User card */}
+              <div className="mb-6 p-5 rounded-3xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/60 dark:border-slate-800/50 backdrop-blur-sm flex items-center gap-4 shadow-sm transition-colors duration-500">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-violet-500 to-cyan-400 flex items-center justify-center text-white font-black text-xl shadow-xl shadow-violet-500/20 flex-shrink-0">
                   {(user?.displayName || user?.email || "U")[0].toUpperCase()}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-bold truncate text-slate-900 dark:text-slate-100">{user?.displayName || "User"}</p>
-                  <p className="text-[10px] text-slate-500 truncate">{user?.email}</p>
+                  <p className="text-lg font-black truncate text-slate-900 dark:text-white tracking-tight italic">{user?.displayName || "User"}</p>
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate mt-0.5">{user?.email}</p>
                 </div>
               </div>
-            </div>
 
-            {/* Scrollable body: nav + bottom actions */}
-            <div className="flex-1 overflow-y-auto flex flex-col">
+              {/* Timer Display */}
+              {notifsEnabled && notifFrequency !== 'off' && (
+                <div className="mb-4 px-1">
+                  <CountdownDisplay mobile={true} />
+                </div>
+              )}
 
-              {/* Nav links */}
-              <div className="px-3 py-3 space-y-1">
-                {navItems.map(({ to, icon: Icon, label }) => (
-                  <NavLink
-                    key={to}
-                    to={to}
-                    end={to === "/app"}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={({ isActive }) =>
-                      `flex items-center gap-4 p-4 rounded-2xl font-bold transition-all
-                    ${isActive
-                        ? "bg-violet-600 text-white shadow-lg shadow-violet-600/20"
-                        : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                      }`
-                    }
-                  >
-                    {({ isActive }) => (
-                      <>
-                        <Icon size={20} />
-                        <span>{label}</span>
-                        {label === "Tasks" && pendingCount > 0 && (
-                          <span className={`ml-auto text-[10px] font-black px-2 py-0.5 rounded-full ${isActive ? "bg-white/20 text-white" : "bg-amber-500 text-white"}`}>
-                            {pendingCount}
-                          </span>
-                        )}
-                      </>
-                    )}
-                  </NavLink>
-                ))}
-              </div>
-
-              {/* Bottom actions */}
-              <div className="p-3 space-y-2 border-t border-slate-100 dark:border-slate-800 mt-auto">
-
-                {/* Timer Display — mobile */}
-                {notifsEnabled && notifFrequency !== 'off' && (countdown >= 0 || isAlarmRinging) && (
-                  <div className={`flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] px-3.5 py-3 rounded-2xl border shadow-[0_0_15px_rgba(34,211,238,0.1)] transition-all duration-300
-                    ${countdown === 0 ? "text-amber-500 bg-amber-500/10 border-amber-500/20 shadow-amber-500/10" : "text-cyan-400 bg-cyan-500/10 border-cyan-500/20 shadow-cyan-500/10"}
-                  `}>
-                    <Clock size={14} strokeWidth={3} className={countdown === 0 ? "text-amber-500 animate-pulse" : "text-cyan-500 flex-shrink-0"} />
-                    <span className="drop-shadow-sm whitespace-nowrap">
-                      {countdown === 0 ? "Check-in Now!" : `Next Check-in: ${formatCountdown(countdown)}`}
-                    </span>
-                  </div>
-                )}
-
-                {/* Notification Toggle Row — mobile */}
+              {/* Notification Row */}
+              <div className="space-y-3">
                 <div
                   onClick={() => {
                     toggleNotifs();
                     if (!notifsEnabled) setShowMobileFreqSelector(true);
                   }}
-                  className={`flex items-center gap-4 w-full p-4 rounded-2xl font-bold transition-all cursor-pointer
-                  ${!notifsEnabled ? "text-red-500 bg-red-500/5 border border-red-500/20" : notifFrequency === 'off' ? "text-amber-500 bg-amber-500/5 border border-amber-500/20" : "text-emerald-500 bg-emerald-500/5 border border-emerald-500/20"}`}
+                  className={`flex items-center gap-4 w-full p-5 rounded-3xl font-black transition-all border cursor-pointer active:scale-[0.98]
+                  ${!notifsEnabled
+                      ? "text-red-500 bg-red-500/[0.03] border-red-500/20 shadow-sm"
+                      : notifFrequency === 'off'
+                        ? "text-amber-500 bg-amber-500/[0.03] border-amber-500/20"
+                        : "text-emerald-500 bg-emerald-500/[0.03] border-emerald-500/20"}`}
                 >
-                  <div className="relative flex-shrink-0">
-                    <Bell size={20} className={notifsEnabled ? (notifFrequency === 'off' ? "text-amber-500 fill-amber-500/20" : "text-emerald-500 fill-emerald-500/20") : "text-red-500 fill-red-500/20"} />
-                    {notifsEnabled && notifFrequency !== 'off' && <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full animate-ping" />}
-                    {notifsEnabled && notifFrequency === 'off' && <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full" />}
+                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-colors
+                    ${!notifsEnabled ? "bg-red-500/10" : notifFrequency === 'off' ? "bg-amber-500/10" : "bg-emerald-500/10"}`}>
+                    <Bell size={22} className={notifsEnabled ? (notifFrequency === 'off' ? "text-amber-500 fill-amber-500/20" : "text-emerald-500 fill-emerald-500/20") : "text-red-500 fill-red-500/20"} />
                   </div>
                   <div className="flex flex-col items-start flex-1 min-w-0">
-                    <span className="text-sm font-bold leading-tight">Notifications</span>
-                    <span className={`text-[10px] font-medium uppercase tracking-tighter ${!notifsEnabled ? "text-red-500/80" : notifFrequency === 'off' ? "text-amber-500/80" : "text-emerald-500/70"}`}>
-                      {!notifsEnabled ? "Disabled" : notifFrequency === 'off' ? 'Paused' : notifFrequency}
+                    <span className="text-base font-black leading-tight uppercase tracking-widest">Notifications</span>
+                    <span className={`text-[10px] font-black uppercase tracking-[0.15em] mt-0.5 opacity-80 ${!notifsEnabled ? "text-red-500" : notifFrequency === 'off' ? "text-amber-500" : "text-emerald-500"}`}>
+                      {!notifsEnabled ? "OFFLINE" : notifFrequency === 'off' ? 'PAUSED' : `ACTIVE • ${notifFrequency}`}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {notifsEnabled && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setShowMobileFreqSelector(!showMobileFreqSelector); }}
-                        className={`p-1.5 rounded-lg transition-colors ${notifFrequency === 'off' ? 'hover:bg-amber-500/20' : 'hover:bg-emerald-500/20'}`}
-                      >
-                        <Settings size={13} className={showMobileFreqSelector ? "rotate-90 transition-transform" : ""} />
-                      </button>
-                    )}
-                    <div className={`w-10 h-5 rounded-full relative transition-colors duration-300 ${!notifsEnabled ? "bg-red-500" : notifFrequency === 'off' ? "bg-amber-500" : "bg-emerald-500"}`}>
-                      <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300 ${notifsEnabled ? "left-[22px]" : "left-0.5"}`} />
-                    </div>
-                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowMobileFreqSelector(!showMobileFreqSelector); }}
+                    className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors ${notifFrequency === 'off' ? 'hover:bg-amber-500/20' : 'hover:bg-emerald-500/20 bg-slate-100 dark:bg-slate-900'}`}
+                  >
+                    <Settings size={16} className={showMobileFreqSelector ? "rotate-180 transition-transform duration-500" : "transition-transform duration-500"} />
+                  </button>
                 </div>
 
-                {/* Frequency Selector — mobile */}
+                {/* Freq Selector */}
                 {notifsEnabled && showMobileFreqSelector && (
-                  <div className="p-3 rounded-2xl bg-white/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 animate-slide-down">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-2.5">Check-in Frequency</p>
-                    <div className="space-y-1.5">
-                      <div className="grid grid-cols-3 gap-1.5">
-                        {["15m", "30m", "1h"].map((f) => (
-                          <button
-                            key={f}
-                            onClick={() => updateFrequency(f)}
-                            className={`px-1 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-tight transition-all
-                            ${notifFrequency === f
-                                ? "bg-violet-600 text-white shadow-md shadow-violet-500/20"
-                                : "text-slate-500 bg-slate-100/50 dark:bg-slate-700/30 hover:bg-slate-200 dark:hover:bg-slate-700/50"}`}
-                          >
-                            {f}
-                          </button>
-                        ))}
-                      </div>
-                      <button
-                        onClick={() => updateFrequency(notifFrequency === "off" ? "15m" : "off")}
-                        className={`w-full py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-tight transition-all
-                        ${notifFrequency === "off"
-                            ? "bg-amber-500 text-white shadow-md shadow-amber-500/20"
-                            : "text-slate-500 bg-slate-100/50 dark:bg-slate-700/30 hover:bg-slate-200 dark:hover:bg-slate-700/50"}`}
-                      >
-                        {notifFrequency === "off" ? "Turn On" : "Turn Off"}
-                      </button>
-                      <div className="pt-2 border-t border-slate-100 dark:border-slate-700/50 flex gap-1.5">
-                        <input
-                          type="number"
-                          placeholder="MIN"
-                          value={customFreq}
-                          onChange={(e) => setCustomFreq(e.target.value)}
-                          className="flex-1 min-w-0 bg-slate-100/80 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-black text-slate-800 dark:text-white focus:outline-none focus:border-violet-500 transition-colors"
-                        />
+                  <div className="p-4 rounded-3xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 animate-slide-up shadow-inner">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-3">Sync Interval</p>
+                    <div className="grid grid-cols-3 gap-2 mb-3">
+                      {["15m", "30m", "1h"].map((f) => (
                         <button
-                          onClick={() => { if (customFreq) { updateFrequency(`${customFreq}m`); setCustomFreq(""); } }}
-                          className="px-4 bg-violet-600 text-white text-[10px] font-black uppercase rounded-xl shadow-lg shadow-violet-500/25 active:scale-95 transition-all"
+                          key={f}
+                          onClick={() => updateFrequency(f)}
+                          className={`py-3 rounded-2xl text-[11px] font-black uppercase transition-all active:scale-95
+                          ${notifFrequency === f ? "bg-violet-600 text-white shadow-lg shadow-violet-500/30" : "text-slate-500 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800"}`}
                         >
-                          Set
+                          {f}
                         </button>
-                      </div>
+                      ))}
                     </div>
+                    <button
+                      onClick={() => updateFrequency(notifFrequency === "off" ? "15m" : "off")}
+                      className={`w-full py-3.5 rounded-2xl text-[11px] font-black uppercase transition-all active:scale-95 border
+                      ${notifFrequency === "off" ? "bg-amber-500 text-white border-amber-600 shadow-lg shadow-amber-500/20" : "text-slate-500 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"}`}
+                    >
+                      {notifFrequency === "off" ? "Activate Protocol" : "Pause Protocol"}
+                    </button>
                   </div>
                 )}
 
-                <button
-                  onClick={toggle}
-                  className="flex items-center gap-4 w-full p-4 rounded-2xl font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
-                >
-                  {isDark ? <Sun size={20} /> : <Moon size={20} />}
-                  {isDark ? "Light Mode" : "Dark Mode"}
-                </button>
-
+                {/* Sign Out */}
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-4 w-full p-4 rounded-2xl font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
+                  className="flex items-center gap-4 w-full p-5 rounded-3xl font-black text-red-500 bg-red-500/[0.03] border border-red-500/10 hover:bg-red-500/10 active:scale-[0.98] transition-all shadow-sm group"
                 >
-                  <LogOut size={20} />
-                  Sign Out
+                  <div className="w-10 h-10 rounded-2xl bg-red-500/10 flex items-center justify-center group-hover:bg-red-500/20 transition-colors">
+                    <LogOut size={22} />
+                  </div>
+                  <span className="text-base tracking-tight italic">Sign Out</span>
+                  <ChevronRight size={18} className="ml-auto opacity-30" />
                 </button>
               </div>
+
+              {/* Bottom spacer for safe area */}
+              <div className="h-6" />
             </div>
           </div>
         </div>

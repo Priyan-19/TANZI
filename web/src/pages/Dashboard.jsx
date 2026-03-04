@@ -16,7 +16,7 @@ import React, { useMemo } from "react";
 // ─── Stat Card (Memoized) ────────────────────────────────────────────────────
 const StatCard = React.memo(({ label, value, icon: Icon, color, sub, trend }) => {
   return (
-    <div className="relative overflow-hidden backdrop-blur-md bg-white/85 dark:bg-slate-900/50 border border-slate-300/60 dark:border-slate-800/40 rounded-[1.5rem] p-4 md:p-6 transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98] hover:shadow-xl hover:shadow-violet-500/10 group cursor-default shadow-sm shadow-slate-300/30">
+    <div className="relative overflow-hidden bg-white/95 dark:bg-slate-900/80 md:backdrop-blur-md border border-slate-300/60 dark:border-slate-800/40 rounded-[1.5rem] p-4 md:p-6 transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98] hover:shadow-xl hover:shadow-violet-500/10 group cursor-default shadow-sm shadow-slate-300/30">
       <div className="absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br from-violet-500/10 to-transparent rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500 pointer-events-none" />
 
       <div className="flex items-start justify-between relative z-10 mb-3 md:mb-4">
@@ -197,7 +197,7 @@ export default function Dashboard() {
 
       {/* ─── Progress Bar ─── */}
       {todayTasks.length > 0 && (
-        <div className="relative overflow-hidden backdrop-blur-xl bg-white/85 dark:bg-slate-900/40 border border-slate-300/80 dark:border-slate-800/50 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-8 group shadow-lg shadow-slate-300/20">
+        <div className="relative overflow-hidden bg-white/95 dark:bg-slate-900/80 md:backdrop-blur-xl border border-slate-300/80 dark:border-slate-800/50 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-8 group shadow-lg shadow-slate-300/20">
           <div className="absolute top-0 right-0 w-48 h-48 bg-violet-600/5 blur-[80px] pointer-events-none" />
 
           <div className="flex items-start md:items-center justify-between gap-3 mb-5">
@@ -236,7 +236,7 @@ export default function Dashboard() {
       )}
 
       {/* ─── Objective Board ─── */}
-      <div className="backdrop-blur-xl bg-white/60 dark:bg-slate-900/40 border border-slate-200/50 dark:border-slate-800/50 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-8 shadow-xl shadow-slate-200/40 dark:shadow-black/20">
+      <div className="bg-white/95 dark:bg-slate-900/80 md:backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-8 shadow-xl shadow-slate-200/40 dark:shadow-black/20">
         <div className="flex items-center justify-between mb-5 md:mb-8">
           <div className="flex items-center gap-2 md:gap-3">
             <div className="w-7 h-7 md:w-8 md:h-8 rounded-xl bg-violet-600 flex items-center justify-center text-white">
