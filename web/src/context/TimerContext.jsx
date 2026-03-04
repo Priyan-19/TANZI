@@ -134,7 +134,16 @@ export function TimerProvider({ children }) {
 
                     if (!Capacitor.isNativePlatform()) {
                         showBrowserNotification("Are You Free..?", "Your check-in timer has finished. Time to review your tasks!");
-                        setIsAlarmRinging(true);
+                        
+                        // User doesn't want the intrusive pop on mobile web. 
+                        // Only trigger full-screen alarm on desktop screens.
+                        if (window.innerWidth >= 768) {
+                            setIsAlarmRinging(true);
+                        } else {
+                            // On mobile web, just reset for next interval
+                            const savedFreq = localStorage.getItem("notif_frequency") || "1h";
+                            resetTimer(savedFreq);
+                        }
                     }
                     setCountdown(0);
                 } else {

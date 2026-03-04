@@ -266,7 +266,10 @@ export default function Layout() {
       >
         {/* Logo */}
         <div className="flex items-center px-4 py-6">
-          <Link to="/" className="flex items-center gap-3 flex-shrink-0 px-2">
+          <div
+            onClick={toggle}
+            className="flex items-center gap-3 flex-shrink-0 px-2 cursor-pointer hover:opacity-80 transition-all active:scale-95"
+          >
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-600 to-cyan-500 p-[2px] shadow-lg shadow-violet-500/30 flex-shrink-0">
               <div className="w-full h-full bg-slate-900 rounded-[14px] flex items-center justify-center">
                 <Zap size={18} className="text-white fill-white" />
@@ -277,7 +280,7 @@ export default function Layout() {
                 TANZI
               </span>
             )}
-          </Link>
+          </div>
         </div>
 
         {/* User Card */}
@@ -486,14 +489,17 @@ export default function Layout() {
           <div className="flex items-center justify-between px-5 md:px-6 py-3 rounded-2xl md:rounded-2xl bg-white/80 dark:bg-slate-900/60 md:backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/40 shadow-sm md:shadow-lg shadow-slate-200/50 dark:shadow-black/20 transition-colors duration-500">
             <div className="flex items-center gap-3">
               {/* Mobile Logo */}
-              <Link to="/app" className="md:hidden flex items-center gap-2.5">
+              <div
+                onClick={toggle}
+                className="md:hidden flex items-center gap-2.5 cursor-pointer active:scale-95 transition-all"
+              >
                 <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 to-cyan-500 p-[2px] shadow-lg shadow-violet-500/20">
                   <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
                     <Zap size={16} className="text-white fill-white" />
                   </div>
                 </div>
                 <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, fontSize: '1.2rem', letterSpacing: '-0.04em', fontStyle: 'italic', background: 'linear-gradient(to right, #8b5cf6, #06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', paddingRight: '0.15em' }}>TANZI</span>
-              </Link>
+              </div>
 
               {/* Desktop date */}
               <div className="hidden md:flex flex-col">
@@ -590,51 +596,12 @@ export default function Layout() {
               </NavLink>
             ))}
 
-            {/* Theme toggle in bottom nav */}
-            <button
-              onClick={toggle}
-              className="flex flex-col items-center gap-1 px-4 py-2.5 rounded-2xl text-slate-500 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-300 transition-all"
-            >
-              {isDark ? <Sun size={21} strokeWidth={1.8} /> : <Moon size={21} strokeWidth={1.8} />}
-              <span className="text-[9px] font-black uppercase tracking-widest">
-                {isDark ? "Light" : "Dark"}
-              </span>
-            </button>
+            {/* Theme Toggle Removed from bottom bar as per user request */}
           </div>
         </nav>
       </main>
 
-      {/* ─── Alarm Modal ────────────────────────────────────────── */}
-      {isAlarmRinging && (
-        <div className="md:hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[32px] p-8 text-center shadow-2xl shadow-violet-500/20 border border-slate-200 dark:border-slate-800 animate-slide-up transform scale-100 flex flex-col items-center">
-            <div className="w-24 h-24 bg-amber-500/10 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(245,158,11,0.3)] animate-pulse">
-              <Clock size={48} className="text-amber-500 animate-bounce" />
-            </div>
-            <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2 tracking-tight">Are You Free..!</h2>
-            <p className="text-slate-500 dark:text-slate-400 font-medium mb-8">
-              Your check-in timer has finished. Time to review your tasks!
-            </p>
-            <div className="flex w-full gap-3">
-              <button
-                onClick={() => handleDismissAlarm()}
-                className="w-1/2 py-4 text-sm font-black text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition-all uppercase tracking-widest"
-              >
-                Busy
-              </button>
-              <button
-                onClick={() => {
-                  handleDismissAlarm();
-                  navigate("/app/tasks");
-                }}
-                className="w-1/2 py-4 text-sm font-black text-white bg-gradient-to-r from-violet-600 to-cyan-500 rounded-2xl shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 active:scale-95 transition-all uppercase tracking-widest"
-              >
-                Free
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ─── Alarm Modal (Removed for Mobile Web as per user request) ─── */}
 
       {/* ─── Profile Popover Overlay (Mobile Bottom Sheet) ─────────────────────────────── */}
       {profilePopoverOpen && (
