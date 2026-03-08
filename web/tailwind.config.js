@@ -1,17 +1,18 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
-  darkMode: "class",
+  darkMode: false,
   theme: {
     extend: {
       colors: {
         primary: {
-          50: "#f5f3ff",
-          500: "#8b5cf6",
-          600: "#7c3aed",
+          50: "#f8fafc",
+          600: "#18181b", // Obsidian
+          700: "#09090b",
         },
         accent: {
-          500: "#06b6d4",
+          500: "#86A386", // Moss Green Accent
+          100: "#f0f4f0", // Subtle Moss fallback
         },
       },
       fontFamily: {

@@ -50,9 +50,39 @@ export function TaskProvider({ children }) {
     return unsubscribe;
   }, [user]);
 
+  // ── Recycle General Tasks ──────────────────────────────────────────────────
+  useEffect(() => {
+    if (!user || loading || tasks.length === 0) return;
+
+    const recycleTasks = async () => {
+      const todayStr = format(new Date(), "yyyy-MM-dd");
+      const generalTasksToRecycle = tasks.filter(
+        (t) => t.type === "general" && t.date < todayStr
+      );
+
+      if (generalTasksToRecycle.length > 0) {
+        console.log(`Recycling ${generalTasksToRecycle.length} general tasks to ${todayStr}...`);
+        // Use a loop for simplicity, or batch update for performance if many
+        for (const task of generalTasksToRecycle) {
+          try {
+            await updateDoc(doc(db, "tasks", task.id), {
+              date: todayStr,
+              status: "pending",
+              completedAt: null,
+            });
+          } catch (err) {
+            console.error(`Failed to recycle task ${task.id}:`, err);
+          }
+        }
+      }
+    };
+
+    recycleTasks();
+  }, [user, tasks, loading]);
+
   // ── CRUD Operations ─────────────────────────────────────────────────────────
 
-  const addTask = useCallback(async ({ title, description, date }) => {
+  const addTask = useCallback(async ({ title, description, date, type = "general" }) => {
     if (!user) return;
     try {
       await addDoc(collection(db, "tasks"), {
@@ -60,6 +90,7 @@ export function TaskProvider({ children }) {
         title: title.trim(),
         description: description?.trim() || "",
         date, // YYYY-MM-DD string
+        type, // general | additional
         status: "pending",
         createdAt: serverTimestamp(),
         completedAt: null,

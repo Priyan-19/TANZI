@@ -288,19 +288,19 @@ export function showInAppNotification(title, body, options = {}) {
   toast.custom(
     (t) => (
       <div
-        className={`flex items-start gap-3 bg-slate-800 border border-slate-700 rounded-2xl px-4 py-3.5 shadow-2xl shadow-black/40 max-w-sm w-full transition-all duration-300 ${t.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
+        className={`flex items-start gap-3 bg-white border border-slate-200 rounded-2xl px-4 py-3.5 shadow-2xl shadow-slate-200/40 max-w-sm w-full transition-all duration-300 ${t.visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
           }`}
       >
-        <div className="w-9 h-9 rounded-xl bg-violet-500/20 flex items-center justify-center flex-shrink-0">
-          <Bell size={16} className="text-violet-400" />
+        <div className="w-9 h-9 rounded-xl bg-primary-600/10 flex items-center justify-center flex-shrink-0">
+          <Bell size={16} className="text-primary-600" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-slate-100">{title}</p>
-          <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">{body}</p>
+          <p className="text-sm font-bold text-slate-900 tracking-tight italic">{title}</p>
+          <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{body}</p>
         </div>
         <button
           onClick={() => toast.dismiss(t.id)}
-          className="text-slate-500 hover:text-slate-300 transition-colors flex-shrink-0 mt-0.5"
+          className="text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0 mt-0.5"
         >
           <X size={14} />
         </button>

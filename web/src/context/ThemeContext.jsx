@@ -4,23 +4,14 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 const ThemeContext = createContext(null);
 
 export function ThemeProvider({ children }) {
-  const [isDark, setIsDark] = useState(() => {
-    const saved = localStorage.getItem("theme");
-    return saved ? saved === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
-  });
+  // Theme is now permanently light mode
+  const isDark = false;
+  const toggle = () => console.warn("Theme toggle is disabled. The app is in Light Mode only.");
 
   useEffect(() => {
-    const root = document.documentElement;
-    if (isDark) {
-      root.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      root.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    }
-  }, [isDark]);
-
-  const toggle = () => setIsDark((d) => !d);
+    document.documentElement.classList.remove("dark");
+    localStorage.setItem("theme", "light");
+  }, []);
 
   return (
     <ThemeContext.Provider value={{ isDark, toggle }}>

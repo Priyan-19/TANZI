@@ -43,7 +43,9 @@ export function TimerProvider({ children }) {
         localStorage.setItem("sleep_schedule", JSON.stringify(sleepSchedule));
     }, [sleepSchedule]);
 
-    // Auto-toggle sleep mode based on schedule
+    // --- Enhanced Auto-toggle logic with manual override support ---
+    const lastAutoStateRef = useRef(null);
+
     useEffect(() => {
         const checkSchedule = () => {
             const now = new Date();
@@ -54,63 +56,82 @@ export function TimerProvider({ children }) {
                 if (start <= end) {
                     return currentTime >= start && currentTime < end;
                 } else {
-                    // Overlap midnight (e.g., 22:00 to 07:00)
                     return currentTime >= start || currentTime < end;
                 }
             };
 
             const shouldBeSleep = isCurrentInSleepRange();
-            if (shouldBeSleep && !isSleepMode) {
-                setIsSleepMode(true);
-            } else if (!shouldBeSleep && isSleepMode && localStorage.getItem("manual_sleep") !== "true") {
-                // Only auto-off if it wasn't manual
-                setIsSleepMode(false);
+
+            // Only auto-trigger when we transition into or out of the sleep window
+            if (lastAutoStateRef.current !== null && lastAutoStateRef.current !== shouldBeSleep) {
+                setIsSleepMode(shouldBeSleep);
+                localStorage.removeItem("manual_sleep"); // Reset manual override on transitions
+            } else if (lastAutoStateRef.current === null) {
+                // Initial load: set state if no manual override exists
+                if (localStorage.getItem("manual_sleep") !== "true") {
+                    setIsSleepMode(shouldBeSleep);
+                }
+            }
+
+            lastAutoStateRef.current = shouldBeSleep;
+        };
+
+        const interval = setInterval(checkSchedule, 10000); // Check more frequently for better responsiveness
+        checkSchedule();
+        return () => clearInterval(interval);
+    }, [sleepSchedule]); // Removed isSleepMode from deps to prevent re-triggering auto-eval on manual toggle
+
+    // Handle high-level timer orchestration and Native Notification Sync
+    useEffect(() => {
+        const syncNotifications = async () => {
+            const savedEnabled = localStorage.getItem("notifs_enabled") !== "false";
+            const savedFreq = localStorage.getItem("notif_frequency") || "1h";
+
+            if (!user || !savedEnabled || savedFreq === "off") {
+                stopTaskReminders();
+                setCountdown(0);
+                if (Capacitor.isNativePlatform()) await dismissNotifications();
+                return;
+            }
+
+            if (isSleepMode) {
+                // Important: On mobile, we MUST cancel pending OS notifications when entering sleep mode
+                if (Capacitor.isNativePlatform()) await dismissNotifications();
+                // We keep the internal countdown running but won't beep
+                return;
+            }
+
+            const freqSeconds = parseFreq(savedFreq);
+            const isGranted = Capacitor.isNativePlatform()
+                ? savedEnabled
+                : (typeof window !== "undefined" && window.Notification?.permission === "granted");
+
+            if (isGranted && freqSeconds > 0) {
+                const savedTarget = localStorage.getItem("next_checkin_at");
+                let targetTime = parseInt(savedTarget);
+                const now = Date.now();
+
+                // If target is invalid or expired, set a new one
+                if (!targetTime || targetTime < now || targetTime > now + (freqSeconds * 1000)) {
+                    targetTime = now + (freqSeconds * 1000);
+                    localStorage.setItem("next_checkin_at", targetTime.toString());
+                }
+
+                // Schedule with OS - this will clear old ones and add new ones
+                await scheduleCheckInBatch(targetTime, freqSeconds);
+
+                const initialRemaining = Math.max(0, Math.floor((targetTime - now) / 1000));
+                setCountdown(initialRemaining);
+
+                if (!Capacitor.isNativePlatform()) {
+                    startTaskReminders(() => tasksRef.current, freqSeconds * 1000, () => userRef.current);
+                }
             }
         };
 
-        const interval = setInterval(checkSchedule, 60000);
-        checkSchedule();
-        return () => clearInterval(interval);
-    }, [sleepSchedule, isSleepMode]);
-
-    // Handle high-level timer orchestration
-    useEffect(() => {
-        const savedEnabled = localStorage.getItem("notifs_enabled") !== "false";
-        const savedFreq = localStorage.getItem("notif_frequency") || "1h"; // Dashboard defaults to 1h usually
-
-        if (!user || !savedEnabled || savedFreq === "off") {
-            stopTaskReminders();
-            setCountdown(0);
-            return;
-        }
-
-        const freqSeconds = parseFreq(savedFreq);
-        const isGranted = Capacitor.isNativePlatform()
-            ? savedEnabled
-            : (typeof window !== "undefined" && window.Notification?.permission === "granted");
-
-        if (isGranted && freqSeconds > 0) {
-            const savedTarget = localStorage.getItem("next_checkin_at");
-            let targetTime = parseInt(savedTarget);
-            const now = Date.now();
-
-            if (!targetTime || targetTime < now || targetTime > now + (freqSeconds * 1000)) {
-                targetTime = now + (freqSeconds * 1000);
-                localStorage.setItem("next_checkin_at", targetTime.toString());
-            }
-
-            scheduleCheckInBatch(targetTime, freqSeconds);
-
-            const initialRemaining = Math.max(0, Math.floor((targetTime - now) / 1000));
-            setCountdown(initialRemaining);
-
-            if (!Capacitor.isNativePlatform()) {
-                startTaskReminders(() => tasksRef.current, freqSeconds * 1000, () => userRef.current);
-            }
-        }
-
+        syncNotifications();
         return () => stopTaskReminders();
-    }, [user]);
+    }, [user, isSleepMode]); // Added isSleepMode to sync notifications when it toggles
 
     // The actual 1-second ticker
     useEffect(() => {
@@ -134,7 +155,7 @@ export function TimerProvider({ children }) {
 
                     if (!Capacitor.isNativePlatform()) {
                         showBrowserNotification("Are You Free..?", "Your check-in timer has finished. Time to review your tasks!");
-                        
+
                         // User doesn't want the intrusive pop on mobile web. 
                         // Only trigger full-screen alarm on desktop screens.
                         if (window.innerWidth >= 768) {
@@ -160,11 +181,16 @@ export function TimerProvider({ children }) {
         if (freqSeconds > 0) {
             const nextTarget = Date.now() + (freqSeconds * 1000);
             localStorage.setItem("next_checkin_at", nextTarget.toString());
-            scheduleCheckInBatch(nextTarget, freqSeconds);
             setCountdown(freqSeconds);
+
+            // Only schedule with OS if NOT in sleep mode
+            if (!isSleepMode) {
+                scheduleCheckInBatch(nextTarget, freqSeconds);
+            }
         } else {
             setCountdown(0);
             localStorage.removeItem("next_checkin_at");
+            if (Capacitor.isNativePlatform()) dismissNotifications();
         }
     };
 

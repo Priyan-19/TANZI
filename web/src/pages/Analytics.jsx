@@ -12,27 +12,27 @@ import {
 import { TrendingUp, Award, Calendar, BarChart3 } from "lucide-react";
 
 const COLORS = {
-  completed: "#10b981",
-  pending: "#f59e0b",
-  rate: "#8b5cf6",
-  line: "#06b6d4",
+  completed: "#86A386",
+  pending: "#e2e8f0",
+  rate: "#18181b",
+  line: "#86A386",
 };
 
 // ─── Chart Card (Memoized) ──────────────────────────────────────────────────
 const ChartCard = React.memo(({ title, children, icon: Icon }) => {
   return (
-    <div className="relative overflow-hidden bg-white/95 dark:bg-slate-900/80 md:backdrop-blur-xl border border-slate-300/80 dark:border-slate-800/40 rounded-[1.5rem] md:rounded-[2rem] p-4 md:p-6 shadow-xl shadow-slate-300/20 dark:shadow-black/20 transition-all duration-300">
+    <div className="relative overflow-hidden bg-white border border-slate-200 rounded-[1.5rem] md:rounded-[2rem] p-4 md:p-6 shadow-xl shadow-slate-200/20 transition-all duration-300">
       <div className="flex items-center justify-between mb-4 md:mb-6">
         <div className="flex items-center gap-2 md:gap-3">
           {Icon && (
-            <div className="w-7 h-7 md:w-8 md:h-8 rounded-xl bg-violet-600/10 flex items-center justify-center text-violet-600">
+            <div className="w-7 h-7 md:w-8 md:h-8 rounded-xl bg-primary-600/10 flex items-center justify-center text-primary-600">
               <Icon size={15} className="md:hidden" />
               <Icon size={18} className="hidden md:block" />
             </div>
           )}
-          <h3 className="text-[11px] md:text-sm font-black text-slate-900 dark:text-slate-100 uppercase tracking-widest">{title}</h3>
+          <h3 className="text-[11px] md:text-sm font-black text-primary-600 uppercase tracking-widest">{title}</h3>
         </div>
-        <div className="w-1.5 h-1.5 rounded-full bg-slate-200 dark:bg-slate-800" />
+        <div className="w-1.5 h-1.5 rounded-full bg-slate-100" />
       </div>
       {children}
     </div>
@@ -43,8 +43,8 @@ const ChartCard = React.memo(({ title, children, icon: Icon }) => {
 const CustomTooltip = React.memo(({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 shadow-xl text-xs">
-      <p className="text-slate-800 dark:text-slate-300 font-bold mb-1">{label}</p>
+    <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-xl text-xs">
+      <p className="text-slate-800 font-bold mb-1">{label}</p>
       {payload.map((p, idx) => (
         <p key={idx} style={{ color: p.color }} className="font-medium">
           {p.name}: <span className="font-bold">{p.value}{p.name === "rate" ? "%" : ""}</span>
@@ -165,16 +165,16 @@ export default function Analytics() {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pt-1 md:pt-2">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <div className="px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-violet-600 dark:text-violet-400">
+            <div className="px-3 py-1 rounded-full bg-primary-600/10 border border-primary-600/20 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-primary-600">
               INTELLIGENCE REPORT
             </div>
-            <div className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
+            <div className="w-1 h-1 rounded-full bg-slate-300" />
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Performance Data</span>
           </div>
-          <h1 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, fontStyle: 'italic', letterSpacing: '-0.04em', lineHeight: 1, paddingBottom: '4px', overflow: 'visible' }} className="text-3xl md:text-4xl text-slate-900 dark:text-slate-100">
-            Strategic <span className="text-violet-600">Analyzers</span>
+          <h1 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, fontStyle: 'italic', letterSpacing: '-0.04em', lineHeight: 1, paddingBottom: '4px', overflow: 'visible' }} className="text-3xl md:text-4xl text-slate-900">
+            Strategic <span className="text-primary-600">Analyzers</span>
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-[10px] md:text-xs font-bold uppercase tracking-widest mt-1">Operational efficiency metrics</p>
+          <p className="text-slate-500 text-[10px] md:text-xs font-bold uppercase tracking-widest mt-1">Operational efficiency metrics</p>
         </div>
 
         {/* Actions */}
@@ -184,23 +184,23 @@ export default function Analytics() {
             disabled={generating}
             className={`px-4 md:px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all shadow-lg active:scale-95
               ${generating
-                ? "bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed"
-                : "bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:scale-[1.02]"}`}
+                ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                : "bg-primary-600 text-white hover:scale-[1.02] shadow-primary-600/10"}`}
           >
             <BarChart3 size={14} className={generating ? "animate-spin" : ""} />
             {generating ? "Updating..." : "Generate"}
           </button>
 
           {/* Period toggle */}
-          <div className="flex gap-1 p-1 bg-white/85 dark:bg-slate-900/40 backdrop-blur-md md:backdrop-blur-xl border border-slate-300/80 dark:border-slate-800/40 rounded-2xl shadow-md">
+          <div className="flex gap-1 p-1 bg-white border border-slate-200 rounded-2xl shadow-md">
             {["week", "month"].map((v) => (
               <button
                 key={v}
                 onClick={() => setView(v)}
                 className={`px-4 md:px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all
                   ${view === v
-                    ? "bg-violet-600 text-white shadow-lg shadow-violet-500/30"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                    ? "bg-primary-600 text-white shadow-lg shadow-primary-600/10"
+                    : "text-slate-500 hover:text-primary-600"
                   }`}
               >
                 {v === "week" ? "Weekly" : "Monthly"}
@@ -214,43 +214,43 @@ export default function Analytics() {
       {/* ─── Score Cards ─── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
         {/* Efficiency */}
-        <div className="relative overflow-hidden bg-white/95 dark:bg-slate-900/80 md:backdrop-blur-xl border border-slate-300/80 dark:border-slate-800/40 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-7 shadow-xl shadow-slate-300/20 dark:shadow-black/20">
+        <div className="relative overflow-hidden bg-white border border-slate-200 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-7 shadow-xl shadow-slate-200/20">
           <div className="flex items-center justify-between mb-4">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 shadow-lg shadow-amber-500/20">
+            <div className="w-9 h-9 rounded-xl bg-accent-500/10 flex items-center justify-center text-accent-500 shadow-lg shadow-accent-500/10">
               <Award size={18} />
             </div>
             <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Efficiency Index</p>
           </div>
-          <p className="text-4xl md:text-5xl font-black text-amber-500 tracking-tighter italic mb-3">{score}</p>
-          <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
+          <p className="text-4xl md:text-5xl font-black text-accent-500 tracking-tighter italic mb-3">{score}</p>
+          <div className="h-2 bg-slate-100 rounded-full overflow-hidden shadow-inner">
             <div
-              className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-1000 shadow-[0_0_8px_rgba(245,158,11,0.4)]"
+              className="h-full bg-accent-500 rounded-full transition-all duration-1000 shadow-[0_0_8px_rgba(16,185,129,0.2)]"
               style={{ width: `${score}%` }}
             />
           </div>
         </div>
 
         {/* Deployment Rate */}
-        <div className="relative overflow-hidden bg-white/95 dark:bg-slate-900/80 md:backdrop-blur-xl border border-slate-300/80 dark:border-slate-800/40 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-7 shadow-xl shadow-slate-300/20 dark:shadow-black/20">
+        <div className="relative overflow-hidden bg-white border border-slate-200 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-7 shadow-xl shadow-slate-200/20">
           <div className="flex items-center justify-between mb-4">
-            <div className="w-9 h-9 rounded-xl bg-violet-600/10 flex items-center justify-center text-violet-600 shadow-lg shadow-violet-500/20">
+            <div className="w-9 h-9 rounded-xl bg-primary-600/10 flex items-center justify-center text-primary-600 shadow-lg shadow-primary-600/10">
               <TrendingUp size={18} />
             </div>
             <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Completion Rate</p>
           </div>
-          <p className="text-4xl md:text-5xl font-black text-violet-600 dark:text-violet-400 tracking-tighter italic mb-2">{avgCompletion}%</p>
+          <p className="text-4xl md:text-5xl font-black text-primary-600 tracking-tighter italic mb-2">{avgCompletion}%</p>
           <p className="text-[9px] md:text-[10px] font-bold text-slate-500 uppercase tracking-widest">{view === "week" ? "Current Protocol" : "Extended Protocol"}</p>
         </div>
 
         {/* Total */}
-        <div className="relative overflow-hidden bg-white/95 dark:bg-slate-900/80 md:backdrop-blur-xl border border-slate-300/80 dark:border-slate-800/40 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-7 shadow-xl shadow-slate-300/20 dark:shadow-black/20">
+        <div className="relative overflow-hidden bg-white border border-slate-200 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-7 shadow-xl shadow-slate-200/20">
           <div className="flex items-center justify-between mb-4">
-            <div className="w-9 h-9 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-500 shadow-lg shadow-cyan-500/20">
+            <div className="w-9 h-9 rounded-xl bg-accent-500/10 flex items-center justify-center text-accent-500 shadow-lg shadow-accent-500/10">
               <Calendar size={18} />
             </div>
             <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Total Captured</p>
           </div>
-          <p className="text-4xl md:text-5xl font-black text-cyan-600 dark:text-cyan-400 tracking-tighter italic mb-2">{tasks.length}</p>
+          <p className="text-4xl md:text-5xl font-black text-accent-500 tracking-tighter italic mb-2">{tasks.length}</p>
           <p className="text-[9px] md:text-[10px] font-bold text-slate-500 uppercase tracking-widest">Global Lifecycle</p>
         </div>
       </div>
@@ -262,9 +262,9 @@ export default function Analytics() {
         <ChartCard title="Completion Trend" icon={TrendingUp}>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={currentData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" opacity={0.3} />
-              <XAxis dataKey="label" tick={{ fill: "#64748b", fontSize: 10 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: "#64748b", fontSize: 10 }} axisLine={false} tickLine={false} domain={[0, 100]} width={30} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.5} />
+              <XAxis dataKey="label" tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} domain={[0, 100]} width={30} />
               <Tooltip content={<CustomTooltip />} />
               <Line
                 type="monotone"
@@ -283,9 +283,9 @@ export default function Analytics() {
         <ChartCard title="Tasks Completed" icon={BarChart3}>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={currentData} barSize={14}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" opacity={0.3} />
-              <XAxis dataKey="label" tick={{ fill: "#64748b", fontSize: 10 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: "#64748b", fontSize: 10 }} axisLine={false} tickLine={false} width={25} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.5} />
+              <XAxis dataKey="label" tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} width={25} />
               <Tooltip content={<CustomTooltip />} />
               <Bar dataKey="completedTasks" name="completed" fill={COLORS.completed} radius={[5, 5, 0, 0]} />
               <Bar dataKey="pendingTasks" name="pending" fill={COLORS.pending} radius={[5, 5, 0, 0]} />
@@ -317,16 +317,16 @@ export default function Analytics() {
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <div className="w-2.5 h-2.5 rounded-full" style={{ background: COLORS.completed }} />
-                  <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase">Completed</span>
+                  <span className="text-[10px] font-semibold text-slate-500 uppercase">Completed</span>
                 </div>
-                <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 tracking-tighter">{totalCompleted}</p>
+                <p className="text-2xl font-black text-accent-500 tracking-tighter">{totalCompleted}</p>
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <div className="w-2.5 h-2.5 rounded-full" style={{ background: COLORS.pending }} />
-                  <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase">Pending</span>
+                  <span className="text-[10px] font-semibold text-slate-500 uppercase">Pending</span>
                 </div>
-                <p className="text-2xl font-black text-amber-600 dark:text-amber-400 tracking-tighter">{totalPending}</p>
+                <p className="text-2xl font-black text-slate-400 tracking-tighter">{totalPending}</p>
               </div>
             </div>
           </div>
@@ -338,9 +338,9 @@ export default function Analytics() {
             {currentData.map((d, i) => (
               <div key={i} className="flex items-center gap-2.5">
                 <span className="text-[10px] text-slate-500 w-8 flex-shrink-0 font-medium">{d.label}</span>
-                <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-violet-500 to-cyan-500 rounded-full transition-all duration-700"
+                    className="h-full bg-primary-600 rounded-full transition-all duration-700"
                     style={{ width: `${d.completionRate || 0}%` }}
                   />
                 </div>

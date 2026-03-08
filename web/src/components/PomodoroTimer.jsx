@@ -4,9 +4,9 @@ import { Play, Pause, RotateCcw, Coffee, SkipForward, Volume2, VolumeX } from "l
 import { notifyPomodoroComplete } from "../services/notificationService";
 
 const MODES = {
-  focus: { label: "Focus", duration: 30 * 60, accent: "#8b5cf6", accentEnd: "#06b6d4", bg: "from-violet-500/10 to-cyan-500/5", badge: "bg-violet-500/15 text-violet-400 border-violet-500/25" },
-  short: { label: "Short Break", duration: 5 * 60, accent: "#10b981", accentEnd: "#06b6d4", bg: "from-emerald-500/10 to-cyan-500/5", badge: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25" },
-  long: { label: "Long Break", duration: 15 * 60, accent: "#06b6d4", accentEnd: "#8b5cf6", bg: "from-cyan-500/10 to-violet-500/5", badge: "bg-cyan-500/15 text-cyan-400 border-cyan-500/25" },
+  focus: { label: "Focus", duration: 30 * 60, accent: "#18181b", accentEnd: "#18181b", bg: "bg-slate-100/50", badge: "bg-primary-600/10 text-primary-600 border-primary-600/20" },
+  short: { label: "Short Break", duration: 5 * 60, accent: "#86A386", accentEnd: "#86A386", bg: "bg-accent-500/5", badge: "bg-accent-500 text-white border-accent-500/20" },
+  long: { label: "Long Break", duration: 15 * 60, accent: "#18181b", accentEnd: "#86A386", bg: "bg-slate-100/50", badge: "bg-primary-600/10 text-primary-600 border-primary-600/20" },
 };
 
 const RADIUS = 54;
@@ -106,20 +106,20 @@ export default function PomodoroTimer({ className = "" }) {
   const gradId = `pomodoro-grad-${mode}`;
 
   return (
-    <div className={`relative overflow-hidden md:backdrop-blur-xl bg-white/80 dark:bg-slate-900/40 border border-slate-300/80 dark:border-slate-800/40 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-6 shadow-xl shadow-slate-300/20 dark:shadow-black/20 transition-all duration-300 ${className}`}>
+    <div className={`relative overflow-hidden bg-white border border-slate-200 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-6 shadow-xl shadow-slate-200/20 transition-all duration-300 ${className}`}>
       {/* Ambient glow */}
-      <div className="absolute top-0 right-0 w-40 h-40 bg-violet-600/5 blur-[80px] pointer-events-none" />
+      <div className="absolute top-0 right-0 w-40 h-40 bg-primary-600/5 blur-[80px] pointer-events-none" />
 
       {/* Mode Tabs */}
-      <div className="flex gap-1 mb-5 p-1 bg-slate-100/50 dark:bg-slate-800/20 rounded-xl w-full">
+      <div className="flex gap-1 mb-5 p-1 bg-slate-50 rounded-xl w-full">
         {Object.entries(MODES).map(([key]) => (
           <button
             key={key}
             onClick={() => switchMode(key)}
             className={`flex-1 py-2 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all
               ${mode === key
-                ? "bg-white dark:bg-slate-800 text-violet-600 dark:text-violet-400 shadow-sm"
-                : "text-slate-400 dark:text-slate-600 hover:text-slate-900 dark:hover:text-slate-300"
+                ? "bg-white text-primary-600 shadow-sm"
+                : "text-slate-400 hover:text-primary-600"
               }`}
           >
             {key === "focus" ? "Focus" : key === "short" ? "Short" : "Long"}
@@ -150,7 +150,7 @@ export default function PomodoroTimer({ className = "" }) {
               fill="none"
               stroke="currentColor"
               strokeWidth="7"
-              className="text-slate-200 dark:text-slate-800"
+              className="text-slate-100"
             />
 
             {/* Progress arc */}
@@ -177,12 +177,12 @@ export default function PomodoroTimer({ className = "" }) {
                 fontVariantNumeric: "tabular-nums",
                 lineHeight: 1,
               }}
-              className="text-slate-900 dark:text-slate-100"
+              className="text-primary-600"
             >
               {minutes}:{seconds}
             </span>
             <div className="flex items-center gap-1 mt-1.5">
-              <span className={`w-1.5 h-1.5 rounded-full ${running ? "bg-emerald-500 animate-pulse" : "bg-red-400"}`} />
+              <span className={`w-1.5 h-1.5 rounded-full ${running ? "bg-accent-500 animate-pulse" : "bg-slate-200"}`} />
               <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
                 {running ? "Active" : "Idle"}
               </span>
@@ -198,16 +198,16 @@ export default function PomodoroTimer({ className = "" }) {
             <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${currentMode.badge}`}>
               {currentMode.label}
             </span>
-            <div className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
-            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest italic">Focus Protocol</p>
+            <div className="w-1 h-1 rounded-full bg-slate-200" />
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">Focus Protocol</p>
           </div>
 
           {/* Play / Pause + adjust */}
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-1.5 p-1.5 bg-slate-100/50 dark:bg-slate-800/20 rounded-[1.25rem] border border-slate-300/60 dark:border-slate-700/50">
+            <div className="flex items-center gap-1.5 p-1.5 bg-slate-50 rounded-[1.25rem] border border-slate-200">
               <button
                 onClick={() => setTimeLeft((t) => Math.max(60, t - 60))}
-                className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-xl bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 shadow-sm hover:scale-105 active:scale-95 transition-transform font-black text-base"
+                className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-xl bg-white text-slate-400 shadow-sm hover:scale-105 active:scale-95 transition-transform font-bold text-base border border-slate-100"
                 title="−1 min"
               >−</button>
 
@@ -215,8 +215,8 @@ export default function PomodoroTimer({ className = "" }) {
                 onClick={() => setRunning((r) => !r)}
                 className={`flex items-center gap-1.5 md:gap-2 px-4 md:px-5 h-9 md:h-10 rounded-xl font-black text-[10px] uppercase tracking-[0.15em] transition-all shadow-lg active:scale-95
                   ${running
-                    ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-slate-900/20"
-                    : "bg-violet-600 text-white shadow-violet-500/30"
+                    ? "bg-primary-600 text-white shadow-primary-600/10"
+                    : "bg-accent-500 text-white shadow-accent-500/10"
                   }`}
               >
                 {running ? <Pause size={13} strokeWidth={3} /> : <Play size={13} strokeWidth={3} />}
@@ -225,32 +225,32 @@ export default function PomodoroTimer({ className = "" }) {
 
               <button
                 onClick={() => setTimeLeft((t) => t + 60)}
-                className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-xl bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 shadow-sm hover:scale-105 active:scale-95 transition-transform font-black text-base"
+                className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-xl bg-white text-slate-400 shadow-sm hover:scale-105 active:scale-95 transition-transform font-bold text-base border border-slate-100"
                 title="+1 min"
               >+</button>
             </div>
 
             {/* Utility buttons */}
-            <div className="flex items-center gap-1 bg-slate-100/50 dark:bg-slate-800/20 p-1.5 rounded-xl border border-slate-300/60 dark:border-slate-700/50">
-              <button onClick={reset} title="Reset" className="p-2 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-900 transition-all flex items-center justify-center">
+            <div className="flex items-center gap-1 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
+              <button onClick={reset} title="Reset" className="p-2 rounded-lg text-slate-400 hover:text-primary-600 hover:bg-white transition-all flex items-center justify-center border border-transparent hover:border-slate-100">
                 <RotateCcw size={13} />
               </button>
-              <button onClick={skip} title="Skip" className="p-2 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-900 transition-all flex items-center justify-center">
+              <button onClick={skip} title="Skip" className="p-2 rounded-lg text-slate-400 hover:text-primary-600 hover:bg-white transition-all flex items-center justify-center border border-transparent hover:border-slate-100">
                 <SkipForward size={13} />
               </button>
               <button
                 onClick={() => setSoundEnabled((s) => !s)}
                 title={soundEnabled ? "Mute" : "Unmute"}
-                className="p-2 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-900 transition-all flex items-center justify-center"
+                className="p-2 rounded-lg text-slate-400 hover:text-primary-600 hover:bg-white transition-all flex items-center justify-center border border-transparent hover:border-slate-100"
               >
                 {soundEnabled ? <Volume2 size={13} /> : <VolumeX size={13} />}
               </button>
             </div>
 
             {/* Sessions badge */}
-            <div className="flex items-center gap-1.5 px-3 py-2 bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 rounded-xl ml-auto">
-              <Coffee size={12} className="text-emerald-500" />
-              <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{sessions} Cycles</span>
+            <div className="flex items-center gap-1.5 px-3 py-2 bg-accent-500/10 border border-accent-500/20 rounded-xl ml-auto">
+              <Coffee size={12} className="text-accent-500" />
+              <span className="text-[10px] font-black text-accent-500 uppercase tracking-widest">{sessions} Cycles</span>
             </div>
           </div>
         </div>

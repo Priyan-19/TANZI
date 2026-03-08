@@ -251,15 +251,16 @@ export default function Layout() {
     (t) => t.date === todayStr && t.status === "pending"
   ).length;
 
+  const accentColor = "#86A386";
+
   return (
-    <div className="flex h-dvh bg-slate-50 text-slate-900 dark:bg-[#020617] dark:text-slate-100 overflow-hidden transition-colors duration-500 font-sans selection:bg-violet-500/30">
+    <div className="flex h-dvh bg-white text-slate-900 overflow-hidden font-sans selection:bg-accent-500/30">
 
       <aside
         className={`
           hidden md:flex flex-col transition-all duration-300 m-4 rounded-3xl
-          border border-slate-300/80 dark:border-slate-800/40
-          bg-white/80 dark:bg-slate-900/40 backdrop-blur-xl
-          shadow-2xl shadow-slate-300/40 dark:shadow-black/40
+          border border-slate-200
+          bg-slate-50 shadow-sm
           ${collapsed ? "w-20" : "w-64"}
         `}
         style={{ overflow: 'visible', clipPath: 'none' }}
@@ -267,16 +268,13 @@ export default function Layout() {
         {/* Logo */}
         <div className="flex items-center px-4 py-6">
           <div
-            onClick={toggle}
             className="flex items-center gap-3 flex-shrink-0 px-2 cursor-pointer hover:opacity-80 transition-all active:scale-95"
           >
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-600 to-cyan-500 p-[2px] shadow-lg shadow-violet-500/30 flex-shrink-0">
-              <div className="w-full h-full bg-slate-900 rounded-[14px] flex items-center justify-center">
-                <Zap size={18} className="text-white fill-white" />
-              </div>
+            <div className="w-10 h-10 rounded-2xl bg-primary-600 flex items-center justify-center shadow-lg shadow-primary-600/10 flex-shrink-0">
+              <Zap size={18} className="text-white fill-white" />
             </div>
             {!collapsed && (
-              <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, fontSize: '1.25rem', letterSpacing: '-0.03em', fontStyle: 'italic', background: 'linear-gradient(to right, #7c3aed, #06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', display: 'inline-block', paddingRight: '0.15em' }}>
+              <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, fontSize: '1.25rem', letterSpacing: '-0.03em', fontStyle: 'italic', color: '#18181b', display: 'inline-block', paddingRight: '0.15em' }}>
                 TANZI
               </span>
             )}
@@ -285,15 +283,15 @@ export default function Layout() {
 
         {/* User Card */}
         {!collapsed && (
-          <div className="mx-4 mb-4 p-4 rounded-2xl bg-slate-100/50 dark:bg-slate-800/30 border border-slate-300/60 dark:border-slate-700/30">
+          <div className="mx-4 mb-4 p-4 rounded-2xl bg-slate-100/50 border border-slate-200">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-500 to-cyan-400 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-violet-500/20 flex-shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-primary-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-primary-600/10 flex-shrink-0">
                 {(user?.displayName || user?.email || "U")[0].toUpperCase()}
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-bold truncate">{user?.displayName || "User"}</p>
                 <div className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-accent-500 animate-pulse" />
                   <span className="text-[10px] font-medium text-slate-500 uppercase tracking-widest">Active</span>
                 </div>
               </div>
@@ -311,15 +309,15 @@ export default function Layout() {
               className={({ isActive }) =>
                 `group relative flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-200
                 ${isActive
-                  ? "bg-violet-600 text-white shadow-lg shadow-violet-600/25 scale-[1.02]"
-                  : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200"
+                  ? "bg-primary-600 text-white shadow-lg shadow-primary-600/20 scale-[1.02]"
+                  : "text-slate-500 hover:bg-white hover:text-primary-600 border border-transparent hover:border-slate-200"
                 }`
               }
             >
               <Icon size={20} className="flex-shrink-0" />
               {!collapsed && <span className="text-sm font-bold tracking-tight">{label}</span>}
               {label === "Tasks" && pendingCount > 0 && !collapsed && (
-                <span className="ml-auto bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg shadow-amber-500/20">
+                <span className="ml-auto bg-accent-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg shadow-accent-500/20">
                   {pendingCount}
                 </span>
               )}
@@ -331,12 +329,12 @@ export default function Layout() {
         <div className="p-3 space-y-1">
           {/* Notification Banner - shown when blocked */}
           {showNotifBanner && (
-            <div className="mb-2 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 animate-slide-up">
+            <div className="mb-2 p-3 rounded-2xl bg-slate-50 border border-slate-200 animate-slide-up">
               <div className="flex items-start gap-2">
-                <Bell size={14} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                <Bell size={14} className="text-primary-600 flex-shrink-0 mt-0.5" />
                 <div className="min-w-0">
-                  <p className="text-xs font-bold text-amber-600 dark:text-amber-400 leading-tight">Notifications blocked</p>
-                  <p className="text-[10px] text-amber-700/70 dark:text-amber-500/70 mt-0.5 leading-relaxed">
+                  <p className="text-xs font-bold text-slate-800 leading-tight">Notifications blocked</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">
                     Click the 🔒 lock icon in your browser&apos;s address bar, then set Notifications to &quot;Allow&quot;.
                   </p>
                 </div>
@@ -357,21 +355,19 @@ export default function Layout() {
             }}
             className={`flex items-center gap-3 px-4 py-3 w-full rounded-2xl transition-all duration-200 group cursor-pointer
               ${notifStatus === "denied" || !notifsEnabled
-                ? "text-red-500 bg-red-500/5 dark:bg-red-500/10 border border-red-500/20"
-                : notifFrequency === 'off'
-                  ? "text-amber-500 bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20"
-                  : "text-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20"}`}
+                ? "text-slate-400 bg-slate-50 border border-slate-200"
+                : "text-accent-500 bg-accent-500/5 border border-accent-500/10"}`}
           >
             <div className="relative flex-shrink-0">
-              <Bell size={18} className={notifsEnabled && notifFrequency !== 'off' ? "fill-emerald-500/20" : notifsEnabled && notifFrequency === 'off' ? "fill-amber-500/20" : "fill-red-500/20"} />
-              {notifsEnabled && notifFrequency !== 'off' && <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full" />}
-              {notifsEnabled && notifFrequency === 'off' && <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full" />}
+              <Bell size={18} className={notifsEnabled && notifFrequency !== 'off' ? "fill-primary-600/20" : notifsEnabled && notifFrequency === 'off' ? "fill-accent-500/20" : "fill-slate-400/20"} />
+              {notifsEnabled && notifFrequency !== 'off' && <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary-600 rounded-full" />}
+              {notifsEnabled && notifFrequency === 'off' && <span className="absolute -top-1 -right-1 w-2 h-2 bg-accent-500 rounded-full" />}
             </div>
             {!collapsed && (
               <>
                 <div className="flex flex-col items-start min-w-0">
                   <span className="text-xs font-bold leading-tight">Notifications</span>
-                  <span className={`text-[10px] font-medium uppercase tracking-tighter ${!notifsEnabled ? "text-red-500/80" : notifFrequency === 'off' ? "text-amber-500/80" : "text-emerald-500/70"
+                  <span className={`text-[10px] font-black uppercase tracking-tighter ${!notifsEnabled ? "text-slate-400" : "text-accent-500"
                     }`}>
                     {!notifsEnabled ? "Disabled" : notifFrequency === 'off' ? 'Paused' : notifFrequency}
                   </span>
@@ -380,12 +376,12 @@ export default function Layout() {
                   {notifsEnabled && (
                     <button
                       onClick={(e) => { e.stopPropagation(); setShowFreqSelector(!showFreqSelector); }}
-                      className={`p-1.5 rounded-lg transition-colors ${notifFrequency === 'off' ? 'hover:bg-amber-500/20' : 'hover:bg-emerald-500/20'}`}
+                      className={`p-1.5 rounded-lg transition-colors ${notifFrequency === 'off' ? 'hover:bg-accent-500/20' : 'hover:bg-primary-600/10'}`}
                     >
                       <Settings size={12} className={showFreqSelector ? "rotate-90 transition-transform" : ""} />
                     </button>
                   )}
-                  <div className={`w-8 h-4 rounded-full relative transition-colors duration-300 ${!notifsEnabled ? "bg-red-500" : notifFrequency === 'off' ? "bg-amber-500" : "bg-emerald-500"}`}>
+                  <div className={`w-8 h-4 rounded-full relative transition-colors duration-300 ${!notifsEnabled ? "bg-slate-200" : notifFrequency === 'off' ? "bg-accent-500" : "bg-primary-600"}`}>
                     <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-all duration-300 ${notifsEnabled ? "left-[18px]" : "left-0.5"}`} />
                   </div>
                 </div>
@@ -395,7 +391,7 @@ export default function Layout() {
 
           {/* Frequency Selector */}
           {notifsEnabled && !collapsed && showFreqSelector && (
-            <div className="p-3 rounded-2xl bg-white/50 dark:bg-slate-800/20 border border-slate-200 dark:border-slate-800 animate-slide-down">
+            <div className="p-3 rounded-2xl bg-white border border-slate-200 shadow-sm animate-slide-down">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-2.5">Check-in Frequency</p>
 
               <div className="space-y-1.5">
@@ -407,8 +403,8 @@ export default function Layout() {
                       onClick={() => updateFrequency(f)}
                       className={`px-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-tight transition-all
                         ${notifFrequency === f
-                          ? "bg-violet-600 text-white shadow-md shadow-violet-500/20"
-                          : "text-slate-500 bg-slate-100/50 dark:bg-slate-700/30 hover:bg-slate-200 dark:hover:bg-slate-700/50"}`}
+                          ? "bg-primary-600 text-white shadow-md shadow-primary-600/10"
+                          : "text-slate-500 bg-slate-100 hover:bg-slate-200"}`}
                     >
                       {f}
                     </button>
@@ -420,20 +416,20 @@ export default function Layout() {
                   onClick={() => updateFrequency(notifFrequency === "off" ? "15m" : "off")}
                   className={`w-full py-2 rounded-xl text-[10px] font-bold uppercase tracking-tight transition-all
                     ${notifFrequency === "off"
-                      ? "bg-amber-500 text-white shadow-md shadow-amber-500/20"
-                      : "text-slate-500 bg-slate-100/50 dark:bg-slate-700/30 hover:bg-slate-200 dark:hover:bg-slate-700/50"}`}
+                      ? "bg-accent-500 text-slate-800 shadow-md shadow-accent-500/20"
+                      : "text-slate-500 bg-slate-100 hover:bg-slate-200"}`}
                 >
                   {notifFrequency === "off" ? "Turn On" : "Turn Off"}
                 </button>
               </div>
 
-              <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50 flex gap-1.5">
+              <div className="mt-3 pt-3 border-t border-slate-100 flex gap-1.5">
                 <input
                   type="number"
                   placeholder="MIN"
                   value={customFreq}
                   onChange={(e) => setCustomFreq(e.target.value)}
-                  className="flex-1 min-w-0 bg-slate-100/80 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-black text-slate-800 dark:text-white focus:outline-none focus:border-violet-500 transition-colors"
+                  className="flex-1 min-w-0 bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-xs font-black text-slate-800 focus:outline-none focus:border-primary-600 transition-colors"
                 />
                 <button
                   onClick={() => {
@@ -442,7 +438,7 @@ export default function Layout() {
                       setCustomFreq("");
                     }
                   }}
-                  className="px-4 bg-violet-600 text-white text-[10px] font-black uppercase rounded-xl shadow-lg shadow-violet-500/25 active:scale-95 transition-all"
+                  className="px-4 bg-primary-600 text-white text-[10px] font-black uppercase rounded-xl shadow-lg shadow-primary-600/10 active:scale-95 transition-all"
                 >
                   Set
                 </button>
@@ -450,19 +446,10 @@ export default function Layout() {
             </div>
           )}
 
-          {/* Theme Toggle */}
-          <button
-            onClick={toggle}
-            className="flex items-center gap-3 px-4 py-3 w-full rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200 transition-all font-bold text-xs"
-          >
-            {isDark ? <Sun size={18} /> : <Moon size={18} />}
-            {!collapsed && (isDark ? "Light Mode" : "Dark Mode")}
-          </button>
-
           {/* Logout */}
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 px-4 py-3 w-full rounded-2xl text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all font-bold text-xs group"
+            className="flex items-center gap-3 px-4 py-3 w-full rounded-2xl text-slate-500 hover:bg-slate-100 transition-all font-bold text-xs group"
           >
             <LogOut size={18} className="transition-transform group-hover:translate-x-0.5" />
             {!collapsed && <span>Sign Out</span>}
@@ -472,7 +459,7 @@ export default function Layout() {
         {/* Collapse Toggle */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="p-3 mx-4 mb-4 rounded-2xl border border-slate-300/60 dark:border-slate-800/50 text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 flex items-center justify-center transition-all bg-white/50 dark:bg-slate-800/20"
+          className="p-3 mx-4 mb-4 rounded-2xl border border-slate-200 text-slate-400 hover:text-primary-600 flex items-center justify-center transition-all bg-white"
         >
           {collapsed
             ? <ChevronRight size={16} />
@@ -486,25 +473,22 @@ export default function Layout() {
 
         {/* Top Floating Header */}
         <header className="sticky top-0 z-40 p-4 pb-0 md:p-4">
-          <div className="flex items-center justify-between px-5 md:px-6 py-3 rounded-2xl md:rounded-2xl bg-white/80 dark:bg-slate-900/60 md:backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/40 shadow-sm md:shadow-lg shadow-slate-200/50 dark:shadow-black/20 transition-colors duration-500">
+          <div className="flex items-center justify-between px-5 md:px-6 py-3 rounded-2xl md:rounded-2xl bg-white/90 backdrop-blur-xl border border-slate-200 shadow-sm transition-colors duration-500">
             <div className="flex items-center gap-3">
               {/* Mobile Logo */}
               <div
-                onClick={toggle}
                 className="md:hidden flex items-center gap-2.5 cursor-pointer active:scale-95 transition-all"
               >
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 to-cyan-500 p-[2px] shadow-lg shadow-violet-500/20">
-                  <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-                    <Zap size={16} className="text-white fill-white" />
-                  </div>
+                <div className="w-9 h-9 rounded-xl bg-primary-600 shadow-lg shadow-primary-600/10 flex items-center justify-center">
+                  <Zap size={16} className="text-white fill-white" />
                 </div>
-                <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, fontSize: '1.2rem', letterSpacing: '-0.04em', fontStyle: 'italic', background: 'linear-gradient(to right, #8b5cf6, #06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', paddingRight: '0.15em' }}>TANZI</span>
+                <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, fontSize: '1.2rem', letterSpacing: '-0.04em', fontStyle: 'italic', color: '#18181b', paddingRight: '0.15em' }}>TANZI</span>
               </div>
 
               {/* Desktop date */}
               <div className="hidden md:flex flex-col">
-                <h1 className="text-sm font-black tracking-tight flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-violet-500 shadow-[0_0_8px_rgba(139,92,246,0.5)]" />
+                <h1 className="text-sm font-black tracking-tight flex items-center gap-2 text-slate-900">
+                  <span className="w-2 h-2 rounded-full bg-primary-600" />
                   {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
                 </h1>
               </div>
@@ -512,12 +496,12 @@ export default function Layout() {
 
             <div className="flex items-center gap-2 md:gap-4">
               {pendingCount > 0 && (
-                <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] md:text-xs font-black animate-slide-up">
+                <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-accent-100 border border-accent-500/20 text-accent-500 text-[10px] md:text-xs font-black animate-slide-up">
                   <AlertCircle size={11} />
                   <span>{pendingCount} Left</span>
                 </div>
               )}
-              <div className="hidden md:block w-px h-6 bg-slate-200 dark:bg-slate-800" />
+              <div className="hidden md:block w-px h-6 bg-slate-200" />
 
               {/* Sleep Mode Toggle (Mobile Only) */}
               {Capacitor.isNativePlatform() && (
@@ -525,25 +509,25 @@ export default function Layout() {
                   onClick={handleSleepClick}
                   className={`relative w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90
                     ${isSleepMode
-                      ? "bg-gradient-to-br from-indigo-600 to-violet-800 text-white shadow-lg shadow-indigo-500/40 border border-indigo-400/30"
-                      : "bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border border-transparent"
+                      ? "bg-primary-600 text-white shadow-lg shadow-primary-600/10 border border-primary-500"
+                      : "bg-slate-100 text-slate-500 border border-transparent"
                     }`}
                 >
                   <Moon size={15} fill={isSleepMode ? "currentColor" : "none"} strokeWidth={2.5} />
                   {isSleepMode && (
-                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-cyan-400 rounded-full border-2 border-slate-950 animate-pulse" />
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-accent-500 rounded-full border-2 border-white animate-pulse" />
                   )}
                 </button>
               )}
 
               <button
                 onClick={() => setProfilePopoverOpen(true)}
-                className="flex items-center gap-2 py-1 pr-1 md:pr-3 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all border border-transparent"
+                className="flex items-center gap-2 py-1 pr-1 md:pr-3 rounded-full hover:bg-slate-100 transition-all border border-transparent"
               >
-                <div className="w-8 h-8 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center text-white text-[11px] font-black shadow-lg shadow-violet-500/20">
+                <div className="w-8 h-8 md:w-8 md:h-8 rounded-full bg-primary-600 flex items-center justify-center text-white text-[11px] font-black shadow-lg shadow-primary-600/10">
                   {(user?.displayName || user?.email || "U")[0].toUpperCase()}
                 </div>
-                <span className="hidden lg:block text-xs font-black tracking-tight text-slate-700 dark:text-slate-300">My Account</span>
+                <span className="hidden lg:block text-xs font-black tracking-tight text-slate-700">My Account</span>
               </button>
             </div>
           </div>
@@ -556,7 +540,7 @@ export default function Layout() {
 
         {/* ─── Mobile Bottom Navigation ─── */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50">
-          <div className="mx-3 mb-3 p-2 rounded-3xl bg-white/90 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-200 dark:border-white/10 shadow-xl shadow-slate-200/50 dark:shadow-black/60 flex items-center justify-around bottom-nav-safe transition-colors duration-500">
+          <div className="mx-3 mb-3 p-2 rounded-3xl bg-white/95 backdrop-blur-2xl border border-slate-200 shadow-xl flex items-center justify-around bottom-nav-safe">
             {navItems.map(({ to, icon: Icon, label }) => (
               <NavLink
                 key={to}
@@ -566,37 +550,32 @@ export default function Layout() {
                   `relative flex flex-col items-center gap-1 px-4 py-2.5 rounded-2xl transition-all duration-200
                   ${isActive
                     ? "text-white"
-                    : "text-slate-500 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-300"
+                    : "text-slate-500 hover:text-primary-600"
                   }`
                 }
               >
                 {({ isActive }) => (
                   <>
                     {isActive && (
-                      <div className="absolute inset-0 bg-violet-600 dark:bg-violet-600/40 rounded-2xl shadow-lg shadow-violet-500/20" />
+                      <div className="absolute inset-0 bg-primary-600 rounded-2xl shadow-lg shadow-primary-600/10" />
                     )}
                     <div className="relative">
                       <Icon size={21} strokeWidth={isActive ? 2.5 : 1.8} />
                       {label === "Tasks" && pendingCount > 0 && (
-                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-amber-500 text-white text-[8px] font-black rounded-full flex items-center justify-center shadow-lg">
+                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-accent-500 text-white text-[8px] font-black rounded-full flex items-center justify-center shadow-lg">
                           {pendingCount > 9 ? "9+" : pendingCount}
                         </span>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <span className={`text-[9px] font-black uppercase tracking-widest relative z-10 ${isActive ? "text-white dark:text-violet-200" : ""}`}>
+                      <span className={`text-[9px] font-black uppercase tracking-widest relative z-10 ${isActive ? "text-white" : ""}`}>
                         {label}
                       </span>
                     </div>
-                    {isActive && (
-                      <div className="absolute bottom-1 w-1 h-1 rounded-full bg-violet-400 dark:bg-violet-400 shadow-[0_0_6px_rgba(167,139,250,0.8)]" />
-                    )}
                   </>
                 )}
               </NavLink>
             ))}
-
-            {/* Theme Toggle Removed from bottom bar as per user request */}
           </div>
         </nav>
       </main>
@@ -613,32 +592,32 @@ export default function Layout() {
           />
 
           {/* Panel (Bottom Sheet) */}
-          <div className="relative w-full bg-white dark:bg-slate-950 rounded-t-[2.5rem] border-t border-slate-200 dark:border-slate-800 shadow-[0_-10px_40px_rgba(0,0,0,0.3)] overflow-hidden animate-slide-up pb-safe transition-colors duration-500">
+          <div className="relative w-full bg-white rounded-t-[2.5rem] border-t border-slate-200 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] overflow-hidden animate-slide-up pb-safe transition-colors duration-500">
             {/* Grab handle */}
-            <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full mx-auto mt-4 mb-2" onClick={() => setProfilePopoverOpen(false)} />
+            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mt-4 mb-2" onClick={() => setProfilePopoverOpen(false)} />
 
             <div className="p-6 md:p-8">
               <div className="flex justify-between items-center mb-6 px-1">
                 <div>
-                  <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight italic">Account Settings</h3>
+                  <h3 className="text-xl font-black text-slate-900 tracking-tight italic">Account Settings</h3>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Control your workspace</p>
                 </div>
                 <button
                   onClick={() => setProfilePopoverOpen(false)}
-                  className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-900 text-slate-500 flex items-center justify-center active:scale-90 transition-transform"
+                  className="w-10 h-10 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center active:scale-90 transition-transform"
                 >
                   <X size={20} />
                 </button>
               </div>
 
               {/* User card */}
-              <div className="mb-6 p-5 rounded-3xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/60 dark:border-slate-800/50 backdrop-blur-sm flex items-center gap-4 shadow-sm transition-colors duration-500">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-violet-500 to-cyan-400 flex items-center justify-center text-white font-black text-xl shadow-xl shadow-violet-500/20 flex-shrink-0">
+              <div className="mb-6 p-5 rounded-3xl bg-slate-50 border border-slate-200 backdrop-blur-sm flex items-center gap-4 shadow-sm transition-colors duration-500">
+                <div className="w-14 h-14 rounded-2xl bg-primary-600 flex items-center justify-center text-white font-black text-xl shadow-xl shadow-primary-600/10 flex-shrink-0">
                   {(user?.displayName || user?.email || "U")[0].toUpperCase()}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-lg font-black truncate text-slate-900 dark:text-white tracking-tight italic">{user?.displayName || "User"}</p>
-                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate mt-0.5">{user?.email}</p>
+                  <p className="text-lg font-black truncate text-slate-900 tracking-tight italic">{user?.displayName || "User"}</p>
+                  <p className="text-xs font-semibold text-slate-500 truncate mt-0.5">{user?.email}</p>
                 </div>
               </div>
 
@@ -658,24 +637,24 @@ export default function Layout() {
                   }}
                   className={`flex items-center gap-4 w-full p-5 rounded-3xl font-black transition-all border cursor-pointer active:scale-[0.98]
                   ${!notifsEnabled
-                      ? "text-red-500 bg-red-500/[0.03] border-red-500/20 shadow-sm"
+                      ? "text-slate-400 bg-slate-50 border-slate-200 shadow-sm"
                       : notifFrequency === 'off'
-                        ? "text-amber-500 bg-amber-500/[0.03] border-amber-500/20"
-                        : "text-emerald-500 bg-emerald-500/[0.03] border-emerald-500/20"}`}
+                        ? "text-accent-500 bg-accent-500/10 border-accent-500/20"
+                        : "text-primary-600 bg-primary-600/5 border-primary-600/10"}`}
                 >
                   <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-colors
-                    ${!notifsEnabled ? "bg-red-500/10" : notifFrequency === 'off' ? "bg-amber-500/10" : "bg-emerald-500/10"}`}>
-                    <Bell size={22} className={notifsEnabled ? (notifFrequency === 'off' ? "text-amber-500 fill-amber-500/20" : "text-emerald-500 fill-emerald-500/20") : "text-red-500 fill-red-500/20"} />
+                    ${!notifsEnabled ? "bg-slate-100" : "bg-primary-600/5"}`}>
+                    <Bell size={22} className={notifsEnabled ? "text-primary-600 fill-primary-600/10" : "text-slate-400 fill-slate-400/10"} />
                   </div>
                   <div className="flex flex-col items-start flex-1 min-w-0">
                     <span className="text-base font-black leading-tight uppercase tracking-widest">Notifications</span>
-                    <span className={`text-[10px] font-black uppercase tracking-[0.15em] mt-0.5 opacity-80 ${!notifsEnabled ? "text-red-500" : notifFrequency === 'off' ? "text-amber-500" : "text-emerald-500"}`}>
+                    <span className={`text-[10px] font-black uppercase tracking-[0.15em] mt-0.5 opacity-80 ${!notifsEnabled ? "text-slate-400" : "text-primary-600"}`}>
                       {!notifsEnabled ? "OFFLINE" : notifFrequency === 'off' ? 'PAUSED' : `ACTIVE • ${notifFrequency}`}
                     </span>
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); setShowMobileFreqSelector(!showMobileFreqSelector); }}
-                    className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors ${notifFrequency === 'off' ? 'hover:bg-amber-500/20' : 'hover:bg-emerald-500/20 bg-slate-100 dark:bg-slate-900'}`}
+                    className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors ${notifFrequency === 'off' ? 'hover:bg-accent-500/20' : 'hover:bg-accent-500/20 bg-slate-100'}`}
                   >
                     <Settings size={16} className={showMobileFreqSelector ? "rotate-180 transition-transform duration-500" : "transition-transform duration-500"} />
                   </button>
@@ -683,7 +662,7 @@ export default function Layout() {
 
                 {/* Freq Selector */}
                 {notifsEnabled && showMobileFreqSelector && (
-                  <div className="p-4 rounded-3xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 animate-slide-up shadow-inner">
+                  <div className="p-4 rounded-3xl bg-slate-50 border border-slate-200 animate-slide-up shadow-inner">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mb-3">Sync Interval</p>
                     <div className="grid grid-cols-3 gap-2 mb-3">
                       {["15m", "30m", "1h"].map((f) => (
@@ -691,7 +670,7 @@ export default function Layout() {
                           key={f}
                           onClick={() => updateFrequency(f)}
                           className={`py-3 rounded-2xl text-[11px] font-black uppercase transition-all active:scale-95
-                          ${notifFrequency === f ? "bg-violet-600 text-white shadow-lg shadow-violet-500/30" : "text-slate-500 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800"}`}
+                          ${notifFrequency === f ? "bg-primary-600 text-white shadow-lg shadow-primary-600/10" : "text-slate-500 bg-white border border-slate-200"}`}
                         >
                           {f}
                         </button>
@@ -705,7 +684,7 @@ export default function Layout() {
                         placeholder="MIN"
                         value={customFreq}
                         onChange={(e) => setCustomFreq(e.target.value)}
-                        className="flex-1 min-w-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-xs font-black text-slate-800 dark:text-white focus:outline-none focus:border-violet-500/50 transition-colors"
+                        className="flex-1 min-w-0 bg-white border border-slate-200 rounded-2xl px-4 py-3 text-xs font-black text-slate-800 focus:outline-none focus:border-primary-600 transition-colors"
                       />
                       <button
                         onClick={() => {
@@ -714,7 +693,7 @@ export default function Layout() {
                             setCustomFreq("");
                           }
                         }}
-                        className="px-6 bg-violet-600 text-white text-[10px] font-black uppercase rounded-2xl shadow-lg shadow-violet-500/25 active:scale-95 transition-all tracking-widest"
+                        className="px-6 bg-primary-600 text-white text-[10px] font-black uppercase rounded-2xl shadow-lg shadow-primary-600/10 active:scale-95 transition-all tracking-widest"
                       >
                         Set
                       </button>
@@ -723,7 +702,7 @@ export default function Layout() {
                     <button
                       onClick={() => updateFrequency(notifFrequency === "off" ? "15m" : "off")}
                       className={`w-full py-3.5 rounded-2xl text-[11px] font-black uppercase transition-all active:scale-95 border
-                      ${notifFrequency === "off" ? "bg-amber-500 text-white border-amber-600 shadow-lg shadow-amber-500/20" : "text-slate-500 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"}`}
+                      ${notifFrequency === "off" ? "bg-accent-500 text-slate-800 border-accent-600 shadow-lg shadow-accent-500/20" : "text-slate-500 bg-white border-slate-200"}`}
                     >
                       {notifFrequency === "off" ? "Activate Protocol" : "Pause Protocol"}
                     </button>
@@ -733,9 +712,9 @@ export default function Layout() {
                 {/* Sign Out */}
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-4 w-full p-5 rounded-3xl font-black text-red-500 bg-red-500/[0.03] border border-red-500/10 hover:bg-red-500/10 active:scale-[0.98] transition-all shadow-sm group"
+                  className="flex items-center gap-4 w-full p-5 rounded-3xl font-black text-slate-600 bg-slate-50 border border-slate-200 hover:bg-slate-100 active:scale-[0.98] transition-all shadow-sm group"
                 >
-                  <div className="w-10 h-10 rounded-2xl bg-red-500/10 flex items-center justify-center group-hover:bg-red-500/20 transition-colors">
+                  <div className="w-10 h-10 rounded-2xl bg-slate-200 flex items-center justify-center group-hover:bg-slate-300 transition-colors text-slate-500">
                     <LogOut size={22} />
                   </div>
                   <span className="text-base tracking-tight italic">Sign Out</span>
@@ -751,11 +730,11 @@ export default function Layout() {
       )}
       {/* ─── Sleep Settings Modal (Mobile only) ────────────────────── */}
       {showSleepSettings && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-md p-6 animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[32px] p-8 border border-slate-200 dark:border-slate-800 shadow-2xl animate-scale-in">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-6 animate-fade-in">
+          <div className="bg-white w-full max-w-sm rounded-[32px] p-8 border border-slate-200 shadow-2xl animate-scale-in">
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500">
+                <div className="w-10 h-10 rounded-2xl bg-primary-600/5 flex items-center justify-center text-primary-600">
                   <Clock size={22} />
                 </div>
                 <div>
@@ -765,7 +744,7 @@ export default function Layout() {
               </div>
               <button
                 onClick={() => setShowSleepSettings(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500"
+                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"
               >
                 <X size={16} />
               </button>
@@ -778,7 +757,7 @@ export default function Layout() {
                   type="time"
                   value={sleepSchedule.start}
                   onChange={(e) => updateSleepSchedule(e.target.value, sleepSchedule.end)}
-                  className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-black text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500/50 transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-black text-slate-900 focus:outline-none focus:border-primary-600 transition-all"
                 />
               </div>
               <div className="space-y-2">
@@ -787,13 +766,13 @@ export default function Layout() {
                   type="time"
                   value={sleepSchedule.end}
                   onChange={(e) => updateSleepSchedule(sleepSchedule.start, e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm font-black text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500/50 transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-black text-slate-900 focus:outline-none focus:border-primary-600 transition-all"
                 />
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl mb-8">
-              <div className="w-8 h-8 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500 flex-shrink-0">
+            <div className="flex items-center gap-3 p-4 bg-primary-600/5 border border-primary-600/10 rounded-2xl mb-8">
+              <div className="w-8 h-8 rounded-xl bg-primary-600/10 flex items-center justify-center text-primary-600 flex-shrink-0">
                 <Zap size={15} />
               </div>
               <p className="text-[10px] font-bold text-slate-500 leading-normal">
@@ -803,7 +782,7 @@ export default function Layout() {
 
             <button
               onClick={() => setShowSleepSettings(false)}
-              className="w-full py-4 rounded-2xl bg-indigo-600 text-white text-xs font-black uppercase tracking-widest shadow-lg shadow-indigo-500/25 active:scale-[0.98] transition-all"
+              className="w-full py-4 rounded-2xl bg-primary-600 text-white text-xs font-black uppercase tracking-widest shadow-lg shadow-primary-600/10 active:scale-[0.98] transition-all"
             >
               Update Routine
             </button>
