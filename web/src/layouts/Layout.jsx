@@ -251,10 +251,10 @@ export default function Layout() {
     (t) => t.date === todayStr && t.status === "pending"
   ).length;
 
-  const accentColor = "#86A386";
+  const primaryColor = "#18181b";
 
   return (
-    <div className="flex h-dvh bg-white text-slate-900 overflow-hidden font-sans selection:bg-accent-500/30">
+    <div className="flex h-dvh bg-white text-slate-900 overflow-hidden font-sans selection:bg-primary-600/30">
 
       <aside
         className={`
@@ -291,7 +291,7 @@ export default function Layout() {
               <div className="min-w-0">
                 <p className="text-sm font-bold truncate">{user?.displayName || "User"}</p>
                 <div className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-accent-500 animate-pulse" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary-600 animate-pulse" />
                   <span className="text-[10px] font-medium text-slate-500 uppercase tracking-widest">Active</span>
                 </div>
               </div>
@@ -317,7 +317,7 @@ export default function Layout() {
               <Icon size={20} className="flex-shrink-0" />
               {!collapsed && <span className="text-sm font-bold tracking-tight">{label}</span>}
               {label === "Tasks" && pendingCount > 0 && !collapsed && (
-                <span className="ml-auto bg-accent-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg shadow-accent-500/20">
+                <span className="ml-auto bg-primary-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg shadow-primary-600/20">
                   {pendingCount}
                 </span>
               )}
@@ -356,18 +356,18 @@ export default function Layout() {
             className={`flex items-center gap-3 px-4 py-3 w-full rounded-2xl transition-all duration-200 group cursor-pointer
               ${notifStatus === "denied" || !notifsEnabled
                 ? "text-slate-400 bg-slate-50 border border-slate-200"
-                : "text-accent-500 bg-accent-500/5 border border-accent-500/10"}`}
+                : "text-primary-600 bg-primary-600/5 border border-primary-600/10"}`}
           >
             <div className="relative flex-shrink-0">
-              <Bell size={18} className={notifsEnabled && notifFrequency !== 'off' ? "fill-primary-600/20" : notifsEnabled && notifFrequency === 'off' ? "fill-accent-500/20" : "fill-slate-400/20"} />
+              <Bell size={18} className={notifsEnabled && notifFrequency !== 'off' ? "fill-primary-600/20" : notifsEnabled && notifFrequency === 'off' ? "fill-primary-600/20" : "fill-slate-400/20"} />
               {notifsEnabled && notifFrequency !== 'off' && <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary-600 rounded-full" />}
-              {notifsEnabled && notifFrequency === 'off' && <span className="absolute -top-1 -right-1 w-2 h-2 bg-accent-500 rounded-full" />}
+              {notifsEnabled && notifFrequency === 'off' && <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary-600 rounded-full" />}
             </div>
             {!collapsed && (
               <>
                 <div className="flex flex-col items-start min-w-0">
                   <span className="text-xs font-bold leading-tight">Notifications</span>
-                  <span className={`text-[10px] font-black uppercase tracking-tighter ${!notifsEnabled ? "text-slate-400" : "text-accent-500"
+                  <span className={`text-[10px] font-black uppercase tracking-tighter ${!notifsEnabled ? "text-slate-400" : "text-primary-600"
                     }`}>
                     {!notifsEnabled ? "Disabled" : notifFrequency === 'off' ? 'Paused' : notifFrequency}
                   </span>
@@ -376,12 +376,12 @@ export default function Layout() {
                   {notifsEnabled && (
                     <button
                       onClick={(e) => { e.stopPropagation(); setShowFreqSelector(!showFreqSelector); }}
-                      className={`p-1.5 rounded-lg transition-colors ${notifFrequency === 'off' ? 'hover:bg-accent-500/20' : 'hover:bg-primary-600/10'}`}
+                      className={`p-1.5 rounded-lg transition-colors ${notifFrequency === 'off' ? 'hover:bg-primary-600/20' : 'hover:bg-primary-600/10'}`}
                     >
                       <Settings size={12} className={showFreqSelector ? "rotate-90 transition-transform" : ""} />
                     </button>
                   )}
-                  <div className={`w-8 h-4 rounded-full relative transition-colors duration-300 ${!notifsEnabled ? "bg-slate-200" : notifFrequency === 'off' ? "bg-accent-500" : "bg-primary-600"}`}>
+                  <div className={`w-8 h-4 rounded-full relative transition-colors duration-300 ${!notifsEnabled ? "bg-slate-200" : notifFrequency === 'off' ? "bg-primary-600" : "bg-primary-600"}`}>
                     <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-all duration-300 ${notifsEnabled ? "left-[18px]" : "left-0.5"}`} />
                   </div>
                 </div>
@@ -416,7 +416,7 @@ export default function Layout() {
                   onClick={() => updateFrequency(notifFrequency === "off" ? "15m" : "off")}
                   className={`w-full py-2 rounded-xl text-[10px] font-bold uppercase tracking-tight transition-all
                     ${notifFrequency === "off"
-                      ? "bg-accent-500 text-slate-800 shadow-md shadow-accent-500/20"
+                      ? "bg-primary-600 text-slate-800 shadow-md shadow-primary-600/20"
                       : "text-slate-500 bg-slate-100 hover:bg-slate-200"}`}
                 >
                   {notifFrequency === "off" ? "Turn On" : "Turn Off"}
@@ -496,7 +496,7 @@ export default function Layout() {
 
             <div className="flex items-center gap-2 md:gap-4">
               {pendingCount > 0 && (
-                <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-accent-100 border border-accent-500/20 text-accent-500 text-[10px] md:text-xs font-black animate-slide-up">
+                <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-primary-50 border border-primary-600/20 text-primary-600 text-[10px] md:text-xs font-black animate-slide-up">
                   <AlertCircle size={11} />
                   <span>{pendingCount} Left</span>
                 </div>
@@ -515,7 +515,7 @@ export default function Layout() {
                 >
                   <Moon size={15} fill={isSleepMode ? "currentColor" : "none"} strokeWidth={2.5} />
                   {isSleepMode && (
-                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-accent-500 rounded-full border-2 border-white animate-pulse" />
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-primary-600 rounded-full border-2 border-white animate-pulse" />
                   )}
                 </button>
               )}
@@ -562,7 +562,7 @@ export default function Layout() {
                     <div className="relative">
                       <Icon size={21} strokeWidth={isActive ? 2.5 : 1.8} />
                       {label === "Tasks" && pendingCount > 0 && (
-                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-accent-500 text-white text-[8px] font-black rounded-full flex items-center justify-center shadow-lg">
+                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-primary-600 text-white text-[8px] font-black rounded-full flex items-center justify-center shadow-lg">
                           {pendingCount > 9 ? "9+" : pendingCount}
                         </span>
                       )}
@@ -639,7 +639,7 @@ export default function Layout() {
                   ${!notifsEnabled
                       ? "text-slate-400 bg-slate-50 border-slate-200 shadow-sm"
                       : notifFrequency === 'off'
-                        ? "text-accent-500 bg-accent-500/10 border-accent-500/20"
+                        ? "text-primary-600 bg-primary-600/10 border-primary-600/20"
                         : "text-primary-600 bg-primary-600/5 border-primary-600/10"}`}
                 >
                   <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-colors
@@ -654,7 +654,7 @@ export default function Layout() {
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); setShowMobileFreqSelector(!showMobileFreqSelector); }}
-                    className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors ${notifFrequency === 'off' ? 'hover:bg-accent-500/20' : 'hover:bg-accent-500/20 bg-slate-100'}`}
+                    className={`w-9 h-9 flex items-center justify-center rounded-xl transition-colors ${notifFrequency === 'off' ? 'hover:bg-primary-600/20' : 'hover:bg-primary-600/20 bg-slate-100'}`}
                   >
                     <Settings size={16} className={showMobileFreqSelector ? "rotate-180 transition-transform duration-500" : "transition-transform duration-500"} />
                   </button>
@@ -702,7 +702,7 @@ export default function Layout() {
                     <button
                       onClick={() => updateFrequency(notifFrequency === "off" ? "15m" : "off")}
                       className={`w-full py-3.5 rounded-2xl text-[11px] font-black uppercase transition-all active:scale-95 border
-                      ${notifFrequency === "off" ? "bg-accent-500 text-slate-800 border-accent-600 shadow-lg shadow-accent-500/20" : "text-slate-500 bg-white border-slate-200"}`}
+                      ${notifFrequency === "off" ? "bg-primary-600 text-slate-800 border-primary-700 shadow-lg shadow-primary-600/20" : "text-slate-500 bg-white border-slate-200"}`}
                     >
                       {notifFrequency === "off" ? "Activate Protocol" : "Pause Protocol"}
                     </button>

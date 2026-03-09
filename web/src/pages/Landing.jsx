@@ -47,7 +47,7 @@ function MockDashboard() {
                 {[
                     { t: "Deep Work Session", p: "80%", c: "bg-primary-600" },
                     { t: "Project Analytics", p: "45%", c: "bg-primary-500" },
-                    { t: "Team Sync", p: "100%", c: "bg-accent-500" }
+                    { t: "Team Sync", p: "100%", c: "bg-primary-600" }
                 ].map((item, i) => (
                     <div key={i} className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                         <div className="flex justify-between text-xs text-slate-500 mb-2 font-black uppercase tracking-[0.1em]">
@@ -78,12 +78,12 @@ export default function Landing() {
     }, []);
 
     return (
-        <div className="min-h-screen bg-white text-slate-800 selection:bg-accent-500/20 font-sans overflow-x-hidden">
+        <div className="min-h-screen bg-white text-slate-800 selection:bg-primary-600/20 font-sans overflow-x-hidden">
 
             {/* ── Background Effects ── */}
             <div className="fixed inset-0 z-0 pointer-events-none">
                 <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary-600/[0.02] blur-[120px] rounded-full" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-accent-500/[0.02] blur-[120px] rounded-full" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary-600/[0.02] blur-[120px] rounded-full" />
                 <div className="absolute inset-0 opacity-[0.4]" style={{
                     backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2394a3b8' fill-opacity='0.05'%3E%3Cpath d='M36 34v2h2v-2h-2zm0 8v2h2v-2h-2zm-8-4v2h2v-2h-2zm0 8v2h2v-2h-2zm-8-4v2h2v-2h-2zm0 8v2h2v-2h-2zm-8-4v2h2v-2h-2zm0 8v2h2v-2h-2zm0-8V6h2v26h-2zm8 8V14h2v26h-2zm8 8V22h2v26h-2zm8 8V30h2v26h-2zM8 6v2h2V6H8zm8 8v2h2v-2h-2zm8 8v2h2v-2h-2zm8 8v2h2v-2h-2zM0 0h2v2H0V0zm0 8h2v2H0V8zm0 8h2v2H0v-2zm0 8h2v2H0v-2zm0 8h2v2H0v-2zm0 8h2v2H0v-2zm0 8h2v2H0v-2zm0 8h2v2H0v-2zm8-8h2v2H8v-2zm0-8h2v2H8v-2zm0-8h2v2H8v-2zm0-8h2v2H8v-2zm0-8h2v2H8V0zm0 8h2v2H8V8zm8 8h2v2h-2v-2zm0-8h2v2h-2V8zm0-8h2v2h-2V0zm8 8h2v2h-2V8zm0-8h2v2h-2V0zm8 0h2v2h-2V0z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
                 }} />
@@ -142,7 +142,7 @@ export default function Landing() {
 
                     <p className="max-w-3xl mx-auto text-base md:text-2xl font-medium leading-[1.6] mb-12 md:mb-16 px-4 text-slate-500">
                         Experience a radical shift in how you work. TANZI combines high-performance
-                        tracking with elite analytics to turn your goals into <span className="text-accent-500 italic font-bold">completed missions.</span>
+                        tracking with elite analytics to turn your goals into <span className="text-primary-600 italic font-bold">completed missions.</span>
                     </p>
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-8">
@@ -190,7 +190,7 @@ export default function Landing() {
                         title="Elite Analytics"
                         desc="Visualize every second with data engine insights."
                         icon={BarChart3}
-                        colorClass="text-accent-500"
+                        colorClass="text-primary-600"
                     >
                         <div className="mt-8 flex items-end gap-2 h-48 px-4">
                             {[40, 70, 45, 90, 65, 85, 100].map((h, i) => (
@@ -219,7 +219,7 @@ export default function Landing() {
                         title="Hyper-Responsive"
                         desc="Engineered for speed on any device. TANZI looks and feels professional across the entire web ecosystem."
                         icon={Activity}
-                        colorClass="text-accent-500"
+                        colorClass="text-primary-600"
                     >
                         <div className="relative mb-8 flex justify-center py-12 md:py-16 bg-slate-50 rounded-[2rem] border border-slate-100">
                             {activeDevice === "DESKTOP" && <Monitor size={80} className="text-primary-600/10 animate-pulse md:size-[100px]" />}
@@ -264,7 +264,7 @@ export default function Landing() {
             <section id="efficiency" className="relative z-10 py-24 md:py-48 bg-slate-50 border-y border-slate-100">
                 <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 md:gap-24 items-center">
                     <div>
-                        <div className="text-accent-500 font-black text-[11px] uppercase tracking-[0.4em] mb-6">Execution Metrics</div>
+                        <div className="text-primary-600 font-black text-[11px] uppercase tracking-[0.4em] mb-6">Execution Metrics</div>
                         <h2 className="text-3xl md:text-6xl font-black text-slate-800 tracking-[-0.04em] leading-[0.9] mb-10 md:mb-12">
                             OPTIMIZE <br />
                             <span className="text-slate-300">YOUR WORKFLOW</span>

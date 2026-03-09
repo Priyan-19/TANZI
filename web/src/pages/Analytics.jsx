@@ -12,10 +12,10 @@ import {
 import { TrendingUp, Award, Calendar, BarChart3 } from "lucide-react";
 
 const COLORS = {
-  completed: "#86A386",
+  completed: "#18181b",
   pending: "#e2e8f0",
   rate: "#18181b",
-  line: "#86A386",
+  line: "#18181b",
 };
 
 // ─── Chart Card (Memoized) ──────────────────────────────────────────────────
@@ -216,15 +216,15 @@ export default function Analytics() {
         {/* Efficiency */}
         <div className="relative overflow-hidden bg-white border border-slate-200 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-7 shadow-xl shadow-slate-200/20">
           <div className="flex items-center justify-between mb-4">
-            <div className="w-9 h-9 rounded-xl bg-accent-500/10 flex items-center justify-center text-accent-500 shadow-lg shadow-accent-500/10">
+            <div className="w-9 h-9 rounded-xl bg-primary-600/10 flex items-center justify-center text-primary-600 shadow-lg shadow-primary-600/10">
               <Award size={18} />
             </div>
             <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Efficiency Index</p>
           </div>
-          <p className="text-4xl md:text-5xl font-black text-accent-500 tracking-tighter italic mb-3">{score}</p>
+          <p className="text-4xl md:text-5xl font-black text-primary-600 tracking-tighter italic mb-3">{score}</p>
           <div className="h-2 bg-slate-100 rounded-full overflow-hidden shadow-inner">
             <div
-              className="h-full bg-accent-500 rounded-full transition-all duration-1000 shadow-[0_0_8px_rgba(16,185,129,0.2)]"
+              className="h-full bg-primary-600 rounded-full transition-all duration-1000 shadow-[0_0_8px_rgba(16,185,129,0.2)]"
               style={{ width: `${score}%` }}
             />
           </div>
@@ -245,12 +245,12 @@ export default function Analytics() {
         {/* Total */}
         <div className="relative overflow-hidden bg-white border border-slate-200 rounded-[1.5rem] md:rounded-[2rem] p-5 md:p-7 shadow-xl shadow-slate-200/20">
           <div className="flex items-center justify-between mb-4">
-            <div className="w-9 h-9 rounded-xl bg-accent-500/10 flex items-center justify-center text-accent-500 shadow-lg shadow-accent-500/10">
+            <div className="w-9 h-9 rounded-xl bg-primary-600/10 flex items-center justify-center text-primary-600 shadow-lg shadow-primary-600/10">
               <Calendar size={18} />
             </div>
             <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Total Captured</p>
           </div>
-          <p className="text-4xl md:text-5xl font-black text-accent-500 tracking-tighter italic mb-2">{tasks.length}</p>
+          <p className="text-4xl md:text-5xl font-black text-primary-600 tracking-tighter italic mb-2">{tasks.length}</p>
           <p className="text-[9px] md:text-[10px] font-bold text-slate-500 uppercase tracking-widest">Global Lifecycle</p>
         </div>
       </div>
@@ -319,7 +319,7 @@ export default function Analytics() {
                   <div className="w-2.5 h-2.5 rounded-full" style={{ background: COLORS.completed }} />
                   <span className="text-[10px] font-semibold text-slate-500 uppercase">Completed</span>
                 </div>
-                <p className="text-2xl font-black text-accent-500 tracking-tighter">{totalCompleted}</p>
+                <p className="text-2xl font-black text-primary-600 tracking-tighter">{totalCompleted}</p>
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-1">

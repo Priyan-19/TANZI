@@ -19,9 +19,9 @@ const CountdownDisplay = ({ mobile = false }) => {
     if (mobile) {
         return (
             <div className={`flex items-center gap-2 text-[10px] md:text-xs font-black uppercase tracking-[0.12em] px-3.5 py-3 rounded-2xl border transition-all duration-300
-        ${countdown === 0 ? "text-white bg-accent-500 border-accent-500 shadow-accent-500/20" : "text-accent-500 bg-accent-500/5 border-accent-500/10 shadow-accent-500/5"}
+        ${countdown === 0 ? "text-white bg-primary-600 border-primary-600 shadow-primary-600/20" : "text-primary-600 bg-primary-600/5 border-primary-600/10 shadow-primary-600/5"}
       `}>
-                <Clock size={14} strokeWidth={3} className={countdown === 0 ? "text-white animate-pulse" : "text-accent-500 flex-shrink-0"} />
+                <Clock size={14} strokeWidth={3} className={countdown === 0 ? "text-white animate-pulse" : "text-primary-600 flex-shrink-0"} />
                 <span className="whitespace-nowrap">
                     {countdown === 0 ? "Check-in Now!" : `Next Check-in: ${formatCountdown(countdown)}`}
                 </span>

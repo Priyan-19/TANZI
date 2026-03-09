@@ -34,7 +34,7 @@ const StatCard = React.memo(({ label, value, icon: Icon, color, sub, trend }) =>
         <p className="text-2xl md:text-4xl font-black text-primary-600 italic tracking-tighter mb-0.5 md:mb-1">{value}</p>
         <p className="text-[9px] md:text-xs font-bold text-slate-500 uppercase tracking-widest leading-tight">{label}</p>
         {trend !== undefined && (
-          <div className={`inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-[9px] md:text-[10px] font-bold ${trend >= 0 ? "bg-accent-500 text-white" : "bg-slate-200 text-slate-500"}`}>
+          <div className={`inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-[9px] md:text-[10px] font-bold ${trend >= 0 ? "bg-primary-600 text-white" : "bg-slate-200 text-slate-500"}`}>
             {trend >= 0 ? <TrendingUp size={9} /> : <TrendingUp size={9} className="rotate-180" />}
             {Math.abs(trend)}%
           </div>
@@ -61,7 +61,7 @@ const DashboardTaskRow = React.memo(({ task }) => {
         onClick={() => isCompleted ? uncompleteTask(task.id) : completeTask(task.id)}
         className={`w-6 h-6 rounded-xl border-2 flex-shrink-0 transition-all flex items-center justify-center tap-target
           ${isCompleted
-            ? "bg-accent-500 border-accent-500 shadow-lg shadow-accent-500/20 scale-110"
+            ? "bg-primary-600 border-primary-600 shadow-lg shadow-primary-600/20 scale-110"
             : "border-slate-300 hover:border-primary-600 active:scale-90"
           }`}
       >
@@ -80,7 +80,7 @@ const DashboardTaskRow = React.memo(({ task }) => {
       </div>
 
       <div className={`flex-shrink-0 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-tighter transition-all
-        ${isCompleted ? "bg-accent-500/10 text-accent-500" : "bg-slate-100 text-slate-500"}`}>
+        ${isCompleted ? "bg-primary-600/10 text-primary-600" : "bg-slate-100 text-slate-500"}`}>
         {isCompleted ? "Done" : "Pending"}
       </div>
     </div>
@@ -147,7 +147,7 @@ export default function Dashboard() {
           </div>
           <h1 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900, fontStyle: 'italic', letterSpacing: '-0.03em', lineHeight: 1.1, paddingBottom: '4px', overflow: 'visible' }} className="text-3xl md:text-5xl text-primary-600 mb-2">
             {headerData.greet},{" "}
-            <span style={{ color: '#86A386', display: 'inline-block', paddingRight: '4px' }}>{headerData.firstName}</span>.
+            <span style={{ color: '#18181b', display: 'inline-block', paddingRight: '4px' }}>{headerData.firstName}</span>.
           </h1>
           <p className="text-slate-500 text-xs md:text-sm font-semibold leading-relaxed max-w-lg">
             {todayTasks.length === 0
@@ -193,9 +193,9 @@ export default function Dashboard() {
       {/* ─── Stats Grid ─── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <StatCard label="Today's Tasks" value={todayTasks.length} icon={Calendar} color="bg-primary-600" />
-        <StatCard label="Completed" value={completedToday} icon={CheckCircle2} color="bg-accent-500" />
+        <StatCard label="Completed" value={completedToday} icon={CheckCircle2} color="bg-primary-600" />
         <StatCard label="Pending" value={pendingTasks.length} icon={Clock} color="bg-primary-600" />
-        <StatCard label="Completion" value={`${completionRate}%`} icon={Target} color="bg-accent-500" sub="today" />
+        <StatCard label="Completion" value={`${completionRate}%`} icon={Target} color="bg-primary-600" sub="today" />
       </div>
 
       {/* ─── Progress Bar ─── */}
@@ -230,7 +230,7 @@ export default function Dashboard() {
 
           <div className="flex justify-between mt-3">
             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Start</span>
-            <span className="text-[9px] font-bold text-accent-500 uppercase tracking-widest">
+            <span className="text-[9px] font-bold text-primary-600 uppercase tracking-widest">
               {completionRate >= 100 ? "MISSION SUCCESS" : "IN PROGRESS"}
             </span>
             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest italic">Tanzi v1.0</span>
@@ -256,7 +256,7 @@ export default function Dashboard() {
             <span className="text-xs text-slate-500 hidden sm:block">{format(new Date(), "MMM d")}</span>
             <Link
               to="/app/tasks"
-              className="text-[11px] text-accent-500 hover:text-accent-600 flex items-center gap-0.5 transition-colors font-bold"
+              className="text-[11px] text-primary-600 hover:text-primary-700 flex items-center gap-0.5 transition-colors font-bold"
             >
               View all <ChevronRight size={12} />
             </Link>

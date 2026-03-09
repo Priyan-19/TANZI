@@ -4,9 +4,9 @@ import { Play, Pause, RotateCcw, Coffee, SkipForward, Volume2, VolumeX } from "l
 import { notifyPomodoroComplete } from "../services/notificationService";
 
 const MODES = {
-  focus: { label: "Focus", duration: 30 * 60, accent: "#18181b", accentEnd: "#18181b", bg: "bg-slate-100/50", badge: "bg-primary-600/10 text-primary-600 border-primary-600/20" },
-  short: { label: "Short Break", duration: 5 * 60, accent: "#86A386", accentEnd: "#86A386", bg: "bg-accent-500/5", badge: "bg-accent-500 text-white border-accent-500/20" },
-  long: { label: "Long Break", duration: 15 * 60, accent: "#18181b", accentEnd: "#86A386", bg: "bg-slate-100/50", badge: "bg-primary-600/10 text-primary-600 border-primary-600/20" },
+  focus: { label: "Focus", duration: 30 * 60, primary: "#18181b", primaryEnd: "#18181b", bg: "bg-slate-100/50", badge: "bg-primary-600/10 text-primary-600 border-primary-600/20" },
+  short: { label: "Short Break", duration: 5 * 60, primary: "#18181b", primaryEnd: "#18181b", bg: "bg-primary-600/5", badge: "bg-primary-600 text-white border-primary-600/20" },
+  long: { label: "Long Break", duration: 15 * 60, primary: "#18181b", primaryEnd: "#18181b", bg: "bg-slate-100/50", badge: "bg-primary-600/10 text-primary-600 border-primary-600/20" },
 };
 
 const RADIUS = 54;
@@ -139,8 +139,8 @@ export default function PomodoroTimer({ className = "" }) {
           >
             <defs>
               <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor={currentMode.accent} />
-                <stop offset="100%" stopColor={currentMode.accentEnd} />
+                <stop offset="0%" stopColor={currentMode.primary} />
+                <stop offset="100%" stopColor={currentMode.primaryEnd} />
               </linearGradient>
             </defs>
 
@@ -182,7 +182,7 @@ export default function PomodoroTimer({ className = "" }) {
               {minutes}:{seconds}
             </span>
             <div className="flex items-center gap-1 mt-1.5">
-              <span className={`w-1.5 h-1.5 rounded-full ${running ? "bg-accent-500 animate-pulse" : "bg-slate-200"}`} />
+              <span className={`w-1.5 h-1.5 rounded-full ${running ? "bg-primary-600 animate-pulse" : "bg-slate-200"}`} />
               <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
                 {running ? "Active" : "Idle"}
               </span>
@@ -216,7 +216,7 @@ export default function PomodoroTimer({ className = "" }) {
                 className={`flex items-center gap-1.5 md:gap-2 px-4 md:px-5 h-9 md:h-10 rounded-xl font-black text-[10px] uppercase tracking-[0.15em] transition-all shadow-lg active:scale-95
                   ${running
                     ? "bg-primary-600 text-white shadow-primary-600/10"
-                    : "bg-accent-500 text-white shadow-accent-500/10"
+                    : "bg-primary-600 text-white shadow-primary-600/10"
                   }`}
               >
                 {running ? <Pause size={13} strokeWidth={3} /> : <Play size={13} strokeWidth={3} />}
@@ -248,9 +248,9 @@ export default function PomodoroTimer({ className = "" }) {
             </div>
 
             {/* Sessions badge */}
-            <div className="flex items-center gap-1.5 px-3 py-2 bg-accent-500/10 border border-accent-500/20 rounded-xl ml-auto">
-              <Coffee size={12} className="text-accent-500" />
-              <span className="text-[10px] font-black text-accent-500 uppercase tracking-widest">{sessions} Cycles</span>
+            <div className="flex items-center gap-1.5 px-3 py-2 bg-primary-600/10 border border-primary-600/20 rounded-xl ml-auto">
+              <Coffee size={12} className="text-primary-600" />
+              <span className="text-[10px] font-black text-primary-600 uppercase tracking-widest">{sessions} Cycles</span>
             </div>
           </div>
         </div>

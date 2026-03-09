@@ -45,7 +45,7 @@ const TaskCard = React.memo(({ task, onComplete, onUncomplete, onEdit, onDelete 
         onClick={() => isCompleted ? onUncomplete(task.id) : onComplete(task.id)}
         className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 transition-all flex items-center justify-center tap-target
           ${isCompleted
-            ? "bg-accent-500 border-accent-500 shadow-md shadow-accent-500/20"
+            ? "bg-primary-600 border-primary-600 shadow-md shadow-primary-600/20"
             : "border-slate-300 hover:border-primary-600 active:scale-90"
           }`}
       >
@@ -65,7 +65,7 @@ const TaskCard = React.memo(({ task, onComplete, onUncomplete, onEdit, onDelete 
             {displayDate}
           </span>
           <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider
-            ${isCompleted ? "bg-accent-500/10 text-accent-500" : "bg-slate-100 text-slate-500"}`}>
+            ${isCompleted ? "bg-primary-600/10 text-primary-600" : "bg-slate-100 text-slate-500"}`}>
             {task.status}
           </span>
           {completionTime && (
@@ -245,7 +245,7 @@ export default function Tasks() {
           {filter === "today" && statusFilter === "all" ? (
             <>
               <p className="text-[10px] font-black text-primary-600 uppercase tracking-wider px-1 pt-2 pb-1 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-accent-500 animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-primary-600 animate-pulse" />
                 Daily Tasks ({totalCount})
               </p>
               {[...pending, ...completed].map((task) => (

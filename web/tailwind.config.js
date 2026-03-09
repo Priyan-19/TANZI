@@ -10,10 +10,6 @@ export default {
           600: "#18181b", // Obsidian
           700: "#09090b",
         },
-        accent: {
-          500: "#86A386", // Moss Green Accent
-          100: "#f0f4f0", // Subtle Moss fallback
-        },
       },
       fontFamily: {
         mono: ["JetBrains Mono", "Fira Code", "monospace"],

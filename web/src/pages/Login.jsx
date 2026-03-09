@@ -94,7 +94,7 @@ export default function Login() {
       {/* Background ambient */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -left-40 w-80 h-80 bg-primary-600/[0.03] rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -right-40 w-80 h-80 bg-[#86A386]/[0.03] rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -right-40 w-80 h-80 bg-[#18181b]/[0.03] rounded-full blur-3xl" />
         <div
           className="absolute inset-0"
           style={{
