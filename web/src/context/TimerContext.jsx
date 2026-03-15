@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from "react";
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "./AuthContext";
 import { useTask } from "./TaskContext";
 import {
@@ -10,24 +10,48 @@ import {
     dismissNotifications
 } from "../services/notificationService";
 import { Capacitor } from '@capacitor/core';
-import { format } from "date-fns";
+import { getSleepWindowStatus } from "./sleepSchedule";
 
 const TimerContext = createContext();
+const SLEEP_OVERRIDE_KEY = "sleep_override";
+
+function readSleepOverride() {
+    try {
+        const saved = localStorage.getItem(SLEEP_OVERRIDE_KEY);
+        return saved ? JSON.parse(saved) : null;
+    } catch {
+        localStorage.removeItem(SLEEP_OVERRIDE_KEY);
+        return null;
+    }
+}
 
 export function TimerProvider({ children }) {
     const { user } = useAuth();
     const { tasks } = useTask();
     const [countdown, setCountdown] = useState(0);
     const [isAlarmRinging, setIsAlarmRinging] = useState(false);
-
-    const [isSleepMode, setIsSleepMode] = useState(() => localStorage.getItem("sleep_mode") === "true");
     const [sleepSchedule, setSleepSchedule] = useState(() => {
         const saved = localStorage.getItem("sleep_schedule");
         return saved ? JSON.parse(saved) : { start: "22:00", end: "07:00" };
     });
+    const [isSleepMode, setIsSleepMode] = useState(() => {
+        const schedule = (() => {
+            const saved = localStorage.getItem("sleep_schedule");
+            return saved ? JSON.parse(saved) : { start: "22:00", end: "07:00" };
+        })();
+        const override = readSleepOverride();
+        const status = getSleepWindowStatus(schedule, new Date());
+
+        if (override?.expiresAt && Date.now() < override.expiresAt) {
+            return Boolean(override.enabled);
+        }
+
+        return status.isInSleepWindow;
+    });
 
     const tasksRef = useRef(tasks);
     const userRef = useRef(user);
+    const sleepBoundaryTimeoutRef = useRef(null);
 
     useEffect(() => {
         tasksRef.current = tasks;
@@ -43,43 +67,75 @@ export function TimerProvider({ children }) {
         localStorage.setItem("sleep_schedule", JSON.stringify(sleepSchedule));
     }, [sleepSchedule]);
 
-    // --- Enhanced Auto-toggle logic with manual override support ---
-    const lastAutoStateRef = useRef(null);
+    const clearSleepBoundaryTimeout = useCallback(() => {
+        if (sleepBoundaryTimeoutRef.current) {
+            clearTimeout(sleepBoundaryTimeoutRef.current);
+            sleepBoundaryTimeoutRef.current = null;
+        }
+    }, []);
+
+    const evaluateSleepMode = useCallback(() => {
+        const now = new Date();
+        const status = getSleepWindowStatus(sleepSchedule, now);
+        const override = readSleepOverride();
+
+        let nextSleepMode = status.isInSleepWindow;
+
+        if (override?.expiresAt && now.getTime() < override.expiresAt) {
+            nextSleepMode = override.enabled;
+        } else if (override) {
+            localStorage.removeItem(SLEEP_OVERRIDE_KEY);
+        }
+
+        setIsSleepMode((current) => (current === nextSleepMode ? current : nextSleepMode));
+        return status;
+    }, [sleepSchedule]);
+
+    const scheduleSleepBoundarySync = useCallback((status) => {
+        clearSleepBoundaryTimeout();
+
+        if (!status?.nextBoundaryAt) {
+            return;
+        }
+
+        const delay = status.nextBoundaryAt.getTime() - Date.now();
+
+        if (delay <= 0) {
+            sleepBoundaryTimeoutRef.current = setTimeout(() => {
+                evaluateSleepMode();
+            }, 0);
+            return;
+        }
+
+        sleepBoundaryTimeoutRef.current = setTimeout(() => {
+            evaluateSleepMode();
+        }, delay + 250);
+    }, [clearSleepBoundaryTimeout, evaluateSleepMode]);
 
     useEffect(() => {
-        const checkSchedule = () => {
-            const now = new Date();
-            const currentTime = format(now, "HH:mm");
-            const { start, end } = sleepSchedule;
-
-            const isCurrentInSleepRange = () => {
-                if (start <= end) {
-                    return currentTime >= start && currentTime < end;
-                } else {
-                    return currentTime >= start || currentTime < end;
-                }
-            };
-
-            const shouldBeSleep = isCurrentInSleepRange();
-
-            // Only auto-trigger when we transition into or out of the sleep window
-            if (lastAutoStateRef.current !== null && lastAutoStateRef.current !== shouldBeSleep) {
-                setIsSleepMode(shouldBeSleep);
-                localStorage.removeItem("manual_sleep"); // Reset manual override on transitions
-            } else if (lastAutoStateRef.current === null) {
-                // Initial load: set state if no manual override exists
-                if (localStorage.getItem("manual_sleep") !== "true") {
-                    setIsSleepMode(shouldBeSleep);
-                }
-            }
-
-            lastAutoStateRef.current = shouldBeSleep;
+        const syncSleepMode = () => {
+            const status = evaluateSleepMode();
+            scheduleSleepBoundarySync(status);
         };
 
-        const interval = setInterval(checkSchedule, 10000); // Check more frequently for better responsiveness
-        checkSchedule();
-        return () => clearInterval(interval);
-    }, [sleepSchedule]); // Removed isSleepMode from deps to prevent re-triggering auto-eval on manual toggle
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                syncSleepMode();
+            }
+        };
+
+        const interval = setInterval(syncSleepMode, 10000);
+        syncSleepMode();
+        window.addEventListener("focus", syncSleepMode);
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+
+        return () => {
+            clearInterval(interval);
+            clearSleepBoundaryTimeout();
+            window.removeEventListener("focus", syncSleepMode);
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+        };
+    }, [clearSleepBoundaryTimeout, evaluateSleepMode, scheduleSleepBoundarySync]);
 
     // Handle high-level timer orchestration and Native Notification Sync
     useEffect(() => {
@@ -133,6 +189,24 @@ export function TimerProvider({ children }) {
         return () => stopTaskReminders();
     }, [user, isSleepMode]); // Added isSleepMode to sync notifications when it toggles
 
+    const resetTimer = useCallback((freq) => {
+        const freqSeconds = parseFreq(freq);
+        if (freqSeconds > 0) {
+            const nextTarget = Date.now() + (freqSeconds * 1000);
+            localStorage.setItem("next_checkin_at", nextTarget.toString());
+            setCountdown(freqSeconds);
+
+            // Only schedule with OS if NOT in sleep mode
+            if (!isSleepMode) {
+                scheduleCheckInBatch(nextTarget, freqSeconds);
+            }
+        } else {
+            setCountdown(0);
+            localStorage.removeItem("next_checkin_at");
+            if (Capacitor.isNativePlatform()) dismissNotifications();
+        }
+    }, [isSleepMode]);
+
     // The actual 1-second ticker
     useEffect(() => {
         const ticker = setInterval(() => {
@@ -174,25 +248,7 @@ export function TimerProvider({ children }) {
         }, 1000);
 
         return () => clearInterval(ticker);
-    }, [isAlarmRinging, isSleepMode]);
-
-    const resetTimer = (freq) => {
-        const freqSeconds = parseFreq(freq);
-        if (freqSeconds > 0) {
-            const nextTarget = Date.now() + (freqSeconds * 1000);
-            localStorage.setItem("next_checkin_at", nextTarget.toString());
-            setCountdown(freqSeconds);
-
-            // Only schedule with OS if NOT in sleep mode
-            if (!isSleepMode) {
-                scheduleCheckInBatch(nextTarget, freqSeconds);
-            }
-        } else {
-            setCountdown(0);
-            localStorage.removeItem("next_checkin_at");
-            if (Capacitor.isNativePlatform()) dismissNotifications();
-        }
-    };
+    }, [isAlarmRinging, isSleepMode, resetTimer]);
 
     const dismissAlarm = (freq) => {
         setIsAlarmRinging(false);
@@ -201,17 +257,27 @@ export function TimerProvider({ children }) {
     };
 
     const toggleSleepMode = (manual = true) => {
-        setIsSleepMode(prev => {
+        setIsSleepMode((prev) => {
             const newVal = !prev;
+
             if (manual) {
-                if (newVal) localStorage.setItem("manual_sleep", "true");
-                else localStorage.removeItem("manual_sleep");
+                const { nextBoundaryAt } = getSleepWindowStatus(sleepSchedule, new Date());
+                if (nextBoundaryAt) {
+                    localStorage.setItem(SLEEP_OVERRIDE_KEY, JSON.stringify({
+                        enabled: newVal,
+                        expiresAt: nextBoundaryAt.getTime(),
+                    }));
+                } else {
+                    localStorage.removeItem(SLEEP_OVERRIDE_KEY);
+                }
             }
+
             return newVal;
         });
     };
 
     const updateSleepSchedule = (start, end) => {
+        localStorage.removeItem(SLEEP_OVERRIDE_KEY);
         setSleepSchedule({ start, end });
     };
 

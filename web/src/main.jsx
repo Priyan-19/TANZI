@@ -7,6 +7,12 @@ import { Capacitor } from '@capacitor/core'
 
 if (Capacitor.isNativePlatform()) {
     initNativeNotifications();
+} else if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+        navigator.serviceWorker
+            .register("/firebase-messaging-sw.js")
+            .catch((error) => console.error("Service worker registration failed:", error));
+    });
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(

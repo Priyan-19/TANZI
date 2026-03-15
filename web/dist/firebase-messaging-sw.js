@@ -66,7 +66,7 @@ self.addEventListener("notificationclick", (event) => {
   // Default behavior or "FREE" action — open/focus the app
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
-      const targetUrl = notificationData.actionUrl || "/app/tasks";
+      const targetUrl = notificationData.actionUrl || "/#/app/tasks";
 
       for (const client of clientList) {
         if (client.url.includes(self.location.origin) && "focus" in client) {

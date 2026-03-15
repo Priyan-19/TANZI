@@ -75,7 +75,7 @@ export const sendHourlyNotifications = functions.pubsub
             data: {
               type: "SMART_REACH_OUT",
               userId: userDoc.id,
-              actionUrl: "/app/tasks",
+              actionUrl: "/#/app/tasks",
             },
             webpush: {
               notification: {
@@ -88,7 +88,7 @@ export const sendHourlyNotifications = functions.pubsub
                 requireInteraction: true,
               },
               fcmOptions: {
-                link: "/app/tasks",
+                link: "/#/app/tasks",
               },
             },
           };

@@ -241,8 +241,8 @@ export async function showBrowserNotification(title, body, options = {}) {
   try {
     // 1. Try Service Worker Registration (Supports Actions on Mobile)
     if ("serviceWorker" in navigator) {
-      const registration = await navigator.serviceWorker.ready;
-      if (registration) {
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (registration?.showNotification) {
         await registration.showNotification(title, {
           body,
           icon: "/favicon.svg",
@@ -369,7 +369,7 @@ export function startTaskReminders(getTasksFn, intervalMs = 30 * 60 * 1000, getU
       showBrowserNotification(title, body, {
         tag: "tanzi-task-reminder",
         requireInteraction: true,
-        data: { userId: user?.uid, type: "SMART_REACH_OUT" },
+        data: { userId: user?.uid, type: "SMART_REACH_OUT", actionUrl: "/#/app/tasks" },
         actions: [
           { action: "FREE", title: "I'M FREE" },
           { action: "BUSY", title: "BUSY" }
@@ -414,7 +414,7 @@ export async function dismissNotifications() {
   // Web SW path
   if ("serviceWorker" in navigator) {
     try {
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await navigator.serviceWorker.getRegistration();
       if (registration) {
         const notifs = await registration.getNotifications();
         notifs.forEach(n => n.close());
