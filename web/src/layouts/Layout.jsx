@@ -9,7 +9,7 @@ import { format } from "date-fns";
 import {
   LayoutDashboard, CheckSquare, BarChart3, LogOut,
   Sun, Moon, Menu, X, Zap, Bell,
-  AlertCircle, ChevronRight, Settings, Clock
+  AlertCircle, ChevronRight, Settings, Clock, ChevronDown
 } from "lucide-react";
 import CountdownDisplay from "../components/CountdownDisplay";
 import {
@@ -25,6 +25,21 @@ import {
   consumePendingAction,
 } from "../services/notificationService";
 import { Capacitor } from '@capacitor/core';
+import { normalizeTimeString, formatClockTime } from "../context/sleepSchedule";
+import TimePicker from "../components/TimePicker";
+
+// ─── Service Worker Communication ─────────────────────────────────────────────
+async function postMessageToSW(message) {
+  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (reg?.active) {
+      reg.active.postMessage(message);
+    }
+  } catch (err) {
+    console.warn("[Layout] Failed to post SW message:", err);
+  }
+}
 
 const navItems = [
   { to: "/app", icon: LayoutDashboard, label: "Dashboard" },
@@ -47,6 +62,7 @@ export default function Layout() {
   });
   const [profilePopoverOpen, setProfilePopoverOpen] = useState(false);
   const [showSleepSettings, setShowSleepSettings] = useState(false);
+  const [activePicker, setActivePicker] = useState(null); // 'start' or 'end'
   const clickTimerRef = useRef(null);
   const [notifFrequency, setNotifFrequency] = useState("1h");
   const [showFreqSelector, setShowFreqSelector] = useState(false);
@@ -68,8 +84,6 @@ export default function Layout() {
     const pending = consumePendingAction();
     if (pending) {
       console.log('Handling pending notification action on mount:', pending);
-      // We'll let the event listener handle it if it fires, 
-      // but manually trigger handleReset-style logic here for cold starts
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent('checkinReset', { detail: { action: pending } }));
       }, 500);
@@ -79,7 +93,6 @@ export default function Layout() {
       setNotifStatus(window.Notification.permission);
     }
     if (user?.uid) {
-      // Basic fetch of user settings if not in auth context
       import("../firebase/config").then(({ db }) => {
         import("firebase/firestore").then(({ doc, getDoc }) => {
           getDoc(doc(db, "users", user.uid)).then(snap => {
@@ -91,7 +104,26 @@ export default function Layout() {
         });
       });
     }
-  }, [user]);
+
+    // 3. Listen for SLEEP_ENDED messages from Service Worker
+    const handleSWMessage = (event) => {
+      if (event.data?.type === "SLEEP_ENDED") {
+        console.log("[Layout] SW: Sleep ended signal received — auto-resuming timer.");
+        const freq = localStorage.getItem("notif_frequency") || "1h";
+        resetTimer(freq);
+      }
+    };
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.addEventListener("message", handleSWMessage);
+    }
+
+    return () => {
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.removeEventListener("message", handleSWMessage);
+      }
+    };
+  }, [user, resetTimer]);
 
   // Lock body scroll when mobile popover is open
   useEffect(() => {
@@ -117,6 +149,26 @@ export default function Layout() {
       }, 250);
     }
   };
+
+  // ─── SW Sleep-End Scheduling ────────────────────────────────────────────
+  // When sleep mode becomes active, register a SW-side wakeup alarm.
+  // When sleep mode turns off, cancel it.
+  useEffect(() => {
+    const savedFreq = localStorage.getItem("notif_frequency") || "1h";
+    const freqSeconds = parseFreq(savedFreq);
+    const notifsEnabled = localStorage.getItem("notifs_enabled") !== "false";
+
+    if (isSleepMode && notifsEnabled && freqSeconds > 0) {
+      postMessageToSW({
+        type: "SCHEDULE_SLEEP_END_WAKEUP",
+        sleepStart: sleepSchedule.start,
+        sleepEnd: sleepSchedule.end,
+        freqSeconds,
+      });
+    } else {
+      postMessageToSW({ type: "CANCEL_SLEEP_END_WAKEUP" });
+    }
+  }, [isSleepMode, sleepSchedule]);
 
   // Timer logic has been moved to TimerProvider context for performance.
   // We only handle beep here on web if alarm is active.
@@ -753,22 +805,32 @@ export default function Layout() {
             <div className="space-y-6 mb-8">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Starts At</label>
-                <input
-                  type="time"
-                  value={sleepSchedule.start}
-                  onChange={(e) => updateSleepSchedule(e.target.value, sleepSchedule.end)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-black text-slate-900 focus:outline-none focus:border-primary-600 transition-all"
-                />
+                <div 
+                  onClick={() => setActivePicker('start')}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 flex items-center justify-between cursor-pointer hover:border-primary-600/50 transition-all select-none"
+                >
+                  <span className="text-sm font-black text-slate-900">
+                    {formatClockTime(sleepSchedule.start)}
+                  </span>
+                  <ChevronDown size={18} className="text-slate-400" />
+                </div>
               </div>
+              
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Wakes Up At</label>
-                <input
-                  type="time"
-                  value={sleepSchedule.end}
-                  onChange={(e) => updateSleepSchedule(sleepSchedule.start, e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-black text-slate-900 focus:outline-none focus:border-primary-600 transition-all"
-                />
+                <div 
+                  onClick={() => setActivePicker('end')}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 flex items-center justify-between cursor-pointer hover:border-primary-600/50 transition-all select-none"
+                >
+                  <span className="text-sm font-black text-slate-900">
+                    {formatClockTime(sleepSchedule.end)}
+                  </span>
+                  <ChevronDown size={18} className="text-slate-400" />
+                </div>
               </div>
+              <p className="text-[9px] text-slate-400 font-medium ml-1 leading-relaxed">
+                ✨ Tap to select your preferred sleep and wake times. Routine updates automatically.
+              </p>
             </div>
 
             <div className="flex items-center gap-3 p-4 bg-primary-600/5 border border-primary-600/10 rounded-2xl mb-8">
@@ -788,6 +850,22 @@ export default function Layout() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* ─── Custom Time Picker Modal ──────────────────────────────── */}
+      {activePicker && (
+        <TimePicker 
+          initialTime={activePicker === 'start' ? sleepSchedule.start : sleepSchedule.end}
+          onSave={(newTime) => {
+            if (activePicker === 'start') {
+              updateSleepSchedule(newTime, sleepSchedule.end);
+            } else {
+              updateSleepSchedule(sleepSchedule.start, newTime);
+            }
+            setActivePicker(null);
+          }}
+          onClose={() => setActivePicker(null)}
+        />
       )}
     </div>
   );

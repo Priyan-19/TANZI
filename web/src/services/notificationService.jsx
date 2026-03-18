@@ -378,11 +378,13 @@ export function startTaskReminders(getTasksFn, intervalMs = 30 * 60 * 1000, getU
       });
     }
 
-    // Also show in-app toast
+    // Also show in-app toast - DISABLED TO PRIORITIZE SYSTEM NOTIFICATIONS
+    /*
     showInAppNotification(title, body, {
       id: "task-reminder",
       duration: 8000,
     });
+    */
   };
 
   // Run immediately, then on interval
@@ -396,15 +398,22 @@ export function startTaskReminders(getTasksFn, intervalMs = 30 * 60 * 1000, getU
 /**
  * Dismiss any active notifications (native/sw) and cancel pending ones.
  */
-export async function dismissNotifications() {
+export async function dismissNotifications(cancelPending = false) {
   if (Capacitor.isNativePlatform()) {
     try {
       // Clear delivered notifications from bar
       await LocalNotifications.removeAllDeliveredNotifications();
-      // Cancel pending scheduled notifications (like future check-ins)
-      const { notifications } = await LocalNotifications.getPending();
-      if (notifications.length > 0) {
-        await LocalNotifications.cancel({ notifications });
+      
+      if (cancelPending) {
+        // Only cancel pending check-in notifications, leave boundaries (800-899) alone
+        const { notifications } = await LocalNotifications.getPending();
+        const idsToCancel = notifications
+          .map(n => n.id)
+          .filter(id => (id >= 1000 && id < 1100) || [888, 889].includes(id));
+
+        if (idsToCancel.length > 0) {
+          await LocalNotifications.cancel({ notifications: idsToCancel.map(id => ({ id })) });
+        }
       }
     } catch (err) {
       console.warn("Failed to clear native notifications:", err);
@@ -430,12 +439,22 @@ export async function dismissNotifications() {
  * This ensures notifications continue to trigger even if the app is 
  * completely closed (killed) by the OS.
  */
-export async function scheduleCheckInBatch(firstTargetMs, intervalSeconds) {
+/**
+ * Schedule a batch of native local notifications for future check-ins.
+ * This ensures notifications continue to trigger even if the app is 
+ * completely closed (killed) by the OS.
+ * 
+ * NOW INCLUDES SLEEP ROUTINE LOGIC: 
+ * Skips check-ins during sleep and schedules sleep start/end notifications.
+ */
+export async function scheduleCheckInBatch(firstTargetMs, intervalSeconds, sleepSchedule = null) {
   if (!Capacitor.isNativePlatform() || intervalSeconds <= 0) return;
 
   try {
-    const START_ID = 900;
-    const BATCH_SIZE = 20; // Schedule next 20 check-ins
+    const { isDateInSleepWindow, getSleepWindowStatus } = await import("../context/sleepSchedule");
+
+    const START_ID = 1000;
+    const BATCH_SIZE = 60; // Increased batch size to cover more than 24h at high frequencies
 
     // Ensure channel exists
     await LocalNotifications.createChannel({
@@ -447,28 +466,96 @@ export async function scheduleCheckInBatch(firstTargetMs, intervalSeconds) {
       vibration: true,
     }).catch(() => { });
 
-    // Cancel any previous batch
+    // Cancel all previous check-ins and sleep boundary notifications in our range
     const pending = await LocalNotifications.getPending();
     const idsToCancel = pending.notifications
       .map(n => n.id)
-      .filter(id => id >= START_ID && id < START_ID + BATCH_SIZE);
+      .filter(id => (id >= START_ID && id < START_ID + BATCH_SIZE + 20) || (id >= 800 && id < 900) || [888, 889].includes(id));
 
     if (idsToCancel.length > 0) {
       await LocalNotifications.cancel({ notifications: idsToCancel.map(id => ({ id })) });
     }
 
     const notifications = [];
+    const now = Date.now();
+
+    // ─── 1. Schedule Sleep Boundaries Explicitly (Next 3 Days) ───────────
+    if (sleepSchedule) {
+      const scheduledDays = new Set();
+      for (let d = 0; d < 3; d++) {
+        const checkDate = new Date(now + d * 24 * 3600 * 1000);
+        const status = getSleepWindowStatus(sleepSchedule, checkDate);
+        if (!status?.windowStartAt || !status?.windowEndAt) continue;
+
+        const dateKey = status.windowEndAt.toDateString();
+        if (scheduledDays.has(dateKey)) continue;
+        scheduledDays.add(dateKey);
+
+        const dayHash = Math.abs(status.windowEndAt.getFullYear() * 1000 + (status.windowEndAt.getMonth() + 1) * 50 + status.windowEndAt.getDate()) % 30;
+        const sleepStartId = 800 + dayHash;
+        const wakeUpId = 830 + dayHash;
+        const wakeUpCheckInId = 860 + dayHash;
+
+        // Sleep Start
+        if (status.windowStartAt.getTime() > now) {
+          notifications.push({
+            title: "🌙 Sleep Mode Active",
+            body: "Check-in reminders are now silenced. Rest well — TANZI will resume in the morning.",
+            id: sleepStartId,
+            schedule: { at: status.windowStartAt },
+            smallIcon: 'ic_stat_tanzi',
+            channelId: 'tanzi_default_channel',
+            allowWhileIdle: true,
+          });
+        }
+
+        // Wake Up
+        if (status.windowEndAt.getTime() > now) {
+          notifications.push({
+            title: "☀️ Good Morning — TANZI Active!",
+            body: "Your sleep routine has ended. TANZI is back online!",
+            id: wakeUpId,
+            schedule: { at: status.windowEndAt },
+            smallIcon: 'ic_stat_tanzi',
+            channelId: 'tanzi_default_channel',
+            allowWhileIdle: true,
+          });
+
+          // Wake Up Check-in (Resume notice)
+          notifications.push({
+            title: "🚀 Check-in Timer Started",
+            body: `Your routine has resumed. First check-in at ${new Date(status.windowEndAt.getTime() + intervalSeconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`,
+            id: wakeUpCheckInId,
+            schedule: { at: new Date(status.windowEndAt.getTime() + 1000) },
+            smallIcon: 'ic_stat_tanzi',
+            channelId: 'tanzi_default_channel',
+            allowWhileIdle: true,
+          });
+        }
+      }
+    }
+
+    // ─── 2. Schedule Check-ins ───────────────────────────────────────────
     let nextTime = firstTargetMs;
 
     for (let i = 0; i < BATCH_SIZE; i++) {
-      const trace_time = new Date(nextTime);
-      if (nextTime > Date.now()) {
-        const timeStr = trace_time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const traceDate = new Date(nextTime);
+      
+      if (nextTime > now) {
+        const inSleep = sleepSchedule ? isDateInSleepWindow(traceDate, sleepSchedule) : false;
+
+        if (inSleep) {
+          // Skip check-ins during sleep
+          nextTime += (intervalSeconds * 1000);
+          i--; 
+          continue;
+        }
+
         notifications.push({
           title: `Are You Free..? ⏰`,
           body: `Check Out Your Tasks`,
           id: START_ID + i,
-          schedule: { at: trace_time },
+          schedule: { at: traceDate },
           smallIcon: 'ic_stat_tanzi',
           largeIcon: 'ic_stat_tanzi',
           channelId: 'tanzi_default_channel',
@@ -477,11 +564,13 @@ export async function scheduleCheckInBatch(firstTargetMs, intervalSeconds) {
         });
       }
       nextTime += (intervalSeconds * 1000);
+      
+      if (i > BATCH_SIZE * 3) break; 
     }
 
     if (notifications.length > 0) {
       await LocalNotifications.schedule({ notifications });
-      console.log(`Scheduled ${notifications.length} check-ins starting at ${new Date(firstTargetMs).toLocaleTimeString()}`);
+      console.log(`[NotificationService] Scheduled ${notifications.length} notifications (batch + boundaries).`);
     }
   } catch (err) {
     console.error("Error scheduling check-in batch:", err);
@@ -517,7 +606,7 @@ export function notifyPomodoroComplete(isBreak = false) {
     });
   }
 
-  showInAppNotification(title, body, { duration: 8000, id: "pomodoro-done" });
+  // showInAppNotification(title, body, { duration: 8000, id: "pomodoro-done" });
 }
 /**
  * Notify the user when an analytics report is generated.

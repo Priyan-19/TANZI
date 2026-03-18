@@ -7,10 +7,11 @@ import {
     parseFreq,
     scheduleCheckInBatch,
     showBrowserNotification,
+    showInAppNotification,
     dismissNotifications
 } from "../services/notificationService";
 import { Capacitor } from '@capacitor/core';
-import { getSleepWindowStatus } from "./sleepSchedule";
+import { getSleepWindowStatus, normalizeTimeString } from "./sleepSchedule";
 
 const TimerContext = createContext();
 const SLEEP_OVERRIDE_KEY = "sleep_override";
@@ -25,6 +26,62 @@ function readSleepOverride() {
     }
 }
 
+// ─── Sleep Boundary Notifications ───────────────────────────────────────────
+
+async function notifySleepStart() {
+    const isGranted = Capacitor.isNativePlatform()
+        ? true
+        : (typeof window !== "undefined" && window.Notification?.permission === "granted");
+
+    if (!isGranted) return;
+
+    await showBrowserNotification(
+        "🌙 Sleep Mode Active",
+        "Check-in reminders are now silenced. Rest well — TANZI will resume automatically when your routine ends.",
+        { tag: "tanzi-sleep-start", requireInteraction: false }
+    );
+
+    // Also show in-app toast if visible - REMOVED AS PER USER REQUEST (PREFERS SYSTEM NOTIFS)
+    // showInAppNotification("🌙 Sleep Mode On", "Check-ins silenced until morning. Good night!");
+}
+
+async function notifySleepEnd(freq) {
+    const isGranted = Capacitor.isNativePlatform()
+        ? true
+        : (typeof window !== "undefined" && window.Notification?.permission === "granted");
+
+    if (!isGranted) return;
+
+    const freqLabel = freq && freq !== "off" ? `(every ${freq})` : "";
+    await showBrowserNotification(
+        "☀️ Good Morning — TANZI Active!",
+        `Your sleep routine has ended. TANZI is back online!`,
+        { tag: "tanzi-sleep-end", requireInteraction: false }
+    );
+
+    // Updated: Only system notification shown now
+    // showInAppNotification("☀️ Wake-up Routine Started", `Routine resumed ${freqLabel}. Let's go!`);
+}
+
+async function notifyTimerStarted(freq) {
+    const isGranted = Capacitor.isNativePlatform()
+        ? true
+        : (typeof window !== "undefined" && window.Notification?.permission === "granted");
+
+    if (!isGranted) return;
+
+    await showBrowserNotification(
+        "🚀 Check-in Timer Started",
+        `TANZI is now tracking your focus. Next check-in in ${freq}.`,
+        { tag: "tanzi-timer-start", requireInteraction: false }
+    );
+
+    // Updated: Only system notification shown now
+    // showInAppNotification("🚀 Timer Started", `Next check-in in ${freq}.`);
+}
+
+// ─── Context Provider ────────────────────────────────────────────────────────
+
 export function TimerProvider({ children }) {
     const { user } = useAuth();
     const { tasks } = useTask();
@@ -32,13 +89,19 @@ export function TimerProvider({ children }) {
     const [isAlarmRinging, setIsAlarmRinging] = useState(false);
     const [sleepSchedule, setSleepSchedule] = useState(() => {
         const saved = localStorage.getItem("sleep_schedule");
-        return saved ? JSON.parse(saved) : { start: "22:00", end: "07:00" };
+        const base = saved ? JSON.parse(saved) : { start: "22:00", end: "07:00" };
+        return {
+            start: normalizeTimeString(base.start),
+            end: normalizeTimeString(base.end)
+        };
     });
     const [isSleepMode, setIsSleepMode] = useState(() => {
-        const schedule = (() => {
-            const saved = localStorage.getItem("sleep_schedule");
-            return saved ? JSON.parse(saved) : { start: "22:00", end: "07:00" };
-        })();
+        const saved = localStorage.getItem("sleep_schedule");
+        const base = saved ? JSON.parse(saved) : { start: "22:00", end: "07:00" };
+        const schedule = {
+            start: normalizeTimeString(base.start),
+            end: normalizeTimeString(base.end)
+        };
         const override = readSleepOverride();
         const status = getSleepWindowStatus(schedule, new Date());
 
@@ -52,6 +115,9 @@ export function TimerProvider({ children }) {
     const tasksRef = useRef(tasks);
     const userRef = useRef(user);
     const sleepBoundaryTimeoutRef = useRef(null);
+
+    // Track the PREVIOUS sleep mode value to detect transitions
+    const prevSleepModeRef = useRef(isSleepMode);
 
     useEffect(() => {
         tasksRef.current = tasks;
@@ -137,7 +203,67 @@ export function TimerProvider({ children }) {
         };
     }, [clearSleepBoundaryTimeout, evaluateSleepMode, scheduleSleepBoundarySync]);
 
-    // Handle high-level timer orchestration and Native Notification Sync
+    // ─── Detect sleep mode TRANSITIONS and auto-resume timer ──────────────────
+    useEffect(() => {
+        const wasSleeping = prevSleepModeRef.current;
+        const isNowSleeping = isSleepMode;
+        prevSleepModeRef.current = isSleepMode;
+
+        const savedEnabled = localStorage.getItem("notifs_enabled") !== "false";
+        const savedFreq = localStorage.getItem("notif_frequency") || "1h";
+
+        // Transition: Just ENTERED sleep mode
+        if (!wasSleeping && isNowSleeping) {
+            console.log("[TimerContext] Sleep mode STARTED — silencing notifications.");
+            stopTaskReminders();
+            if (Capacitor.isNativePlatform()) {
+                dismissNotifications();
+            }
+            if (savedEnabled && savedFreq !== "off") {
+                notifySleepStart();
+            }
+            return;
+        }
+
+        // Transition: Just EXITED sleep mode → auto-resume check-in timer
+        if (wasSleeping && !isNowSleeping) {
+            console.log("[TimerContext] Sleep mode ENDED — auto-resuming check-in timer.");
+
+            if (!user || !savedEnabled || savedFreq === "off") {
+                console.log("[TimerContext] Notifications disabled or no user. Skipping resume.");
+                return;
+            }
+
+            const freqSeconds = parseFreq(savedFreq);
+            if (freqSeconds <= 0) return;
+
+            // Reset the timer to start fresh from wake-up time
+            const nextTarget = Date.now() + (freqSeconds * 1000);
+            localStorage.setItem("next_checkin_at", nextTarget.toString());
+            setCountdown(freqSeconds);
+
+            // Schedule OS-level notifications immediately, including the sleep schedule
+            // This ensures future check-ins skip the NEXT night too.
+            scheduleCheckInBatch(nextTarget, freqSeconds, sleepSchedule).then(() => {
+                console.log("[TimerContext] OS check-in batch re-scheduled after sleep end.");
+            });
+
+            // For web, restart the in-browser task reminder loop
+            if (!Capacitor.isNativePlatform()) {
+                startTaskReminders(
+                    () => tasksRef.current,
+                    freqSeconds * 1000,
+                    () => userRef.current
+                );
+            }
+
+            // In-app wake-up notification
+            notifySleepEnd(savedFreq);
+            notifyTimerStarted(savedFreq);
+        }
+    }, [isSleepMode, user, sleepSchedule]);
+
+    // ─── Handle high-level timer orchestration and Native Notification Sync ──
     useEffect(() => {
         const syncNotifications = async () => {
             const savedEnabled = localStorage.getItem("notifs_enabled") !== "false";
@@ -146,14 +272,7 @@ export function TimerProvider({ children }) {
             if (!user || !savedEnabled || savedFreq === "off") {
                 stopTaskReminders();
                 setCountdown(0);
-                if (Capacitor.isNativePlatform()) await dismissNotifications();
-                return;
-            }
-
-            if (isSleepMode) {
-                // Important: On mobile, we MUST cancel pending OS notifications when entering sleep mode
-                if (Capacitor.isNativePlatform()) await dismissNotifications();
-                // We keep the internal countdown running but won't beep
+                if (Capacitor.isNativePlatform()) await dismissNotifications(true);
                 return;
             }
 
@@ -167,14 +286,24 @@ export function TimerProvider({ children }) {
                 let targetTime = parseInt(savedTarget);
                 const now = Date.now();
 
-                // If target is invalid or expired, set a new one
+                // If target is invalid or expired, set a new one  
                 if (!targetTime || targetTime < now || targetTime > now + (freqSeconds * 1000)) {
                     targetTime = now + (freqSeconds * 1000);
                     localStorage.setItem("next_checkin_at", targetTime.toString());
                 }
 
                 // Schedule with OS - this will clear old ones and add new ones
-                await scheduleCheckInBatch(targetTime, freqSeconds);
+                // We pass the sleepSchedule so the OS-level batch knows when to be silent.
+                // WE NOW DO THIS EVEN IN SLEEP MODE to ensure wake-up boundaries are set.
+                await scheduleCheckInBatch(targetTime, freqSeconds, sleepSchedule);
+
+                if (isSleepMode) {
+                    // If in sleep mode locally, we still set the countdown but don't start the browser interval
+                    const initialRemaining = Math.max(0, Math.floor((targetTime - now) / 1000));
+                    setCountdown(initialRemaining);
+                    stopTaskReminders();
+                    return;
+                }
 
                 const initialRemaining = Math.max(0, Math.floor((targetTime - now) / 1000));
                 setCountdown(initialRemaining);
@@ -187,7 +316,7 @@ export function TimerProvider({ children }) {
 
         syncNotifications();
         return () => stopTaskReminders();
-    }, [user, isSleepMode]); // Added isSleepMode to sync notifications when it toggles
+    }, [user, isSleepMode, sleepSchedule]);
 
     const resetTimer = useCallback((freq) => {
         const freqSeconds = parseFreq(freq);
@@ -198,12 +327,12 @@ export function TimerProvider({ children }) {
 
             // Only schedule with OS if NOT in sleep mode
             if (!isSleepMode) {
-                scheduleCheckInBatch(nextTarget, freqSeconds);
+                scheduleCheckInBatch(nextTarget, freqSeconds, sleepSchedule);
             }
         } else {
             setCountdown(0);
             localStorage.removeItem("next_checkin_at");
-            if (Capacitor.isNativePlatform()) dismissNotifications();
+            if (Capacitor.isNativePlatform()) dismissNotifications(true);
         }
     }, [isSleepMode]);
 
@@ -221,7 +350,6 @@ export function TimerProvider({ children }) {
                 if (remaining <= 0) {
                     // Suppress alarm if in sleep mode
                     if (isSleepMode) {
-                        // Just reset for next interval silently
                         const savedFreq = localStorage.getItem("notif_frequency") || "1h";
                         resetTimer(savedFreq);
                         return;
@@ -230,12 +358,10 @@ export function TimerProvider({ children }) {
                     if (!Capacitor.isNativePlatform()) {
                         showBrowserNotification("Are You Free..?", "Your check-in timer has finished. Time to review your tasks!");
 
-                        // User doesn't want the intrusive pop on mobile web. 
-                        // Only trigger full-screen alarm on desktop screens.
+                        // Only trigger full-screen alarm on desktop
                         if (window.innerWidth >= 768) {
                             setIsAlarmRinging(true);
                         } else {
-                            // On mobile web, just reset for next interval
                             const savedFreq = localStorage.getItem("notif_frequency") || "1h";
                             resetTimer(savedFreq);
                         }
