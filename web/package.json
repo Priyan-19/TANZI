@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -49,6 +52,9 @@
   },
   "overrides": {
     "minimatch": "^3.1.5",
-    "tar": "^7.5.9"
+    "tar": "^7.5.9",
+    "@codetrix-studio/capacitor-google-auth": {
+      "@capacitor/core": "$@capacitor/core"
+    }
   }
 }
