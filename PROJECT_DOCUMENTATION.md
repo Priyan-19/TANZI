@@ -139,7 +139,9 @@ d:\TANZI
 - **Smart Check-ins**: Context-aware notifications that ask "Are you Free?" and allow the user to mark themselves as "Busy" for 1 hour.
 - **Sleep Routine (Fully Automated)**: Define a sleep window. Sleep mode starts and ends automatically, sending notifications at both transitions even if the app is closed (via OS-level scheduling). Check-in timer resumes automatically after sleep ends.
 - **12-Hour Time Support**: UI and notifications now use a user-friendly 12-hour format with AM/PM selection, while maintaining internal 24-hour normalization to prevent the "12:00 AM triggers at noon" bug.
+- **SEO & PWA Optimization**: Implemented high-resolution icons, `robots.txt`, and `sitemap.xml` for maximum discoverability and performance.
 - **Task Recycling**: Never lose track of a task; "General" tasks auto-forward until completed.
+- **Git/GitHub Workflow**: Production-ready codebase with full version control and GitHub integration.
 - **Productivity Scoring**: Algorithmic evaluation based on 7-day completion rates.
 - **Multi-Platform**: Works as a Progressive Web App (PWA) OR a native Android/iOS app via Capacitor.
 - **Background Service Worker Alarm**: Even when the web app tab is closed, the SW can detect when sleep ends and notify + resume timer.
@@ -197,6 +199,7 @@ d:\TANZI
 | Bug | Root Cause | Fix Applied |
 |---|---|---|
 | Sleep at 12:00 AM fires at noon | `"12:00"` parsed as 720 min (noon) not 0 min | Added `normalizeTimeString()` with explicit AM/PM awareness & 12h UI |
+| SEO Discovery Low | Missing `robots.txt`/`sitemap.xml` | Added SEO metadata and assets to `web/public` |
 | Timer doesn't resume after sleep | No transition detection on `isSleepMode` state | Added `prevSleepModeRef` + auto-resume effect in `TimerContext` |
 | No sleep start/end notification | Missing notification calls at boundaries | Added `notifySleepStart()` / `notifySleepEnd()` and pre-scheduling |
 | Timer needs app open to start | No background execution path | Added SW `SCHEDULE_SLEEP_END_WAKEUP` + OS Local Notifications pre-scheduling |

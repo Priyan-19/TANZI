@@ -16,6 +16,7 @@
 8. **Asynchronous Logic**: Explain how you would handle a scenario where a user goes offline while marking a task as "Complete." How does `persistentLocalCache` help?
 9. **Environment Management**: How does Vite handle different Firebase configurations for `.env.local` vs production environments?
 10. **Native Plugins**: How does the `@codetrix-studio/capacitor-google-auth` plugin differ in implementation between the web browser and a physical Android device?
+11. **DevOps & SEO**: What is the purpose of including a `sitemap.xml` and `robots.txt` in a PWA? How does version control via Git assist in collaborative development for a project like TANZI?
 
 ---
 

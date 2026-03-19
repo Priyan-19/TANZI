@@ -40,10 +40,12 @@ This document outlines the professional skills and competencies required to main
 | **Web Notification API** | Browser API | Intermediate | Using `serviceWorker.registration.showNotification` with actions, `requireInteraction`, and `tag` options. |
 | **Sleep Scheduling Logic** | Algorithm | Advanced | Implementing a cross-midnight sleep window state machine with AM/PM ↔ 24h bidirectional normalization, and boundary-triggered side effects. |
 
-## 🧪 5. Engineering Practices
+## 🧪 5. Engineering & DevOps Practices
 | Skill | Category | Proficiency | Description |
 | :--- | :--- | :--- | :--- |
-| **Vitest** | Testing | Intermediate | Writing unit tests for pure functions (`sleepSchedule.js`, `analyticsService.js`), including regression tests for critical bugs (midnight/noon ambiguity). |
+| **Git / GitHub** | Version Control | Advanced | Managing branch strategies, resolving merge conflicts, and maintaining a production-ready codebase with meaningful commits. |
+| **SEO Optimization** | Performance | Intermediate | Implementing `robots.txt`, `sitemap.xml`, and metadata for search engine indexing and PWA discoverability. |
+| **Vitest** | Testing | Intermediate | Writing unit tests for pure functions (`sleepSchedule.js`, `analyticsService.js`), including regression tests for critical bugs. |
 | **Clean Architecture** | Pattern | Advanced | Separation of concerns: `pages` (UI), `context` (state), `services` (business logic), `sleepSchedule` (pure math utilities). |
 | **State Machine Pattern** | Pattern | Advanced | Using `useRef` to track previous state values to detect transitions and trigger side effects (e.g., sleep-start vs. sleep-end notifications). |
 | **Performance Optimization** | UX | Intermediate | Using `React.memo`, `useMemo`, `useCallback` to prevent unnecessary re-renders on mobile. |
