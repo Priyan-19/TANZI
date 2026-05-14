@@ -8,7 +8,7 @@
     src="web/assets/icon.png" 
     width="15%" 
     height="15%"
-    style="border-radius: 15px;"
+    style="border-radius: 15 px;"
   >
 </picture>
 
