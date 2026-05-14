@@ -3,7 +3,7 @@
 # ⚡ TANZI
 ### High-Performance Productivity & Time Management Platform 🚀
 
-<img src="web/assets/icon.png" style="border-radius: 50%;" width="120" />
+<img src="web/assets/icon.png"  width="150" />
 
 [![React](https://img.shields.io/badge/React_18-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
